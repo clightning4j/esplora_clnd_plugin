@@ -1,7 +1,7 @@
 # esplora_clnd_plugin
 [c-lightning](https://github.com/ElementsProject/lightning) C plugin to use (as possible) [esplora web explorer](https://blockstream.info) to fetch bitcoin data.
 
-1st c-lightning plugin with esplora integration is [sauron plugin](https://github.com/darosior/plugins/blob/sauron/sauron) developped by [darosior](https://github.com/darosior).
+1st c-lightning plugin with esplora integration is [sauron plugin](https://github.com/lightningd/plugins/tree/master/sauron) developped by [darosior](https://github.com/darosior).
 
 #### Build
 
