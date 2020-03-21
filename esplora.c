@@ -23,6 +23,8 @@
 
 static char *endpoint = NULL;
 static char *blockchair_endpoint = NULL;
+static char *cainfo_path = NULL;
+static u64 verbose = 0;
 
 struct curl_memory_data {
   char *memory;
@@ -55,21 +57,26 @@ static char *request(const char *url, const bool post, const char* data) {
 	chunk.size = 0;
 
 	CURL *curl;
-    CURLcode res;
-    curl = curl_easy_init();
+	CURLcode res;
+	curl = curl_easy_init();
 	if (!curl) {
 	    return NULL;
 	}
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+	if (verbose != 0)
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+	if (cainfo_path != NULL)
+		curl_easy_setopt(curl,CURLOPT_CAINFO, cainfo_path);
 	if (post) {
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
 	}
+	curl_easy_setopt(curl, CURLOPT_CAPATH, "/system/etc/security/cacerts");
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+
 	res = curl_easy_perform(curl);
 	if(res != CURLE_OK) {
 		return NULL;
@@ -531,5 +538,13 @@ int main(int argc, char *argv[])
 				  "string",
 				  "Select the blockchair api url only to fetch rawblocks.",
 				  charp_option, &blockchair_endpoint),
+		    plugin_option("esplora-cainfo",
+				  "string",
+				  "Set path to Certificate Authority (CA) bundle.",
+				  charp_option, &cainfo_path),
+		    plugin_option("esplora-verbose",
+				  "int",
+				  "Set verbose output (default 0).",
+				  u64_option, &verbose),
 		    NULL);
 }
