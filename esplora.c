@@ -253,28 +253,20 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 }
 
 /* Get current feerate.
- * Calls `estimatesmartfee` and returns the feerate as btc/k*VBYTE*.
+ * Returns the feerate to lightningd as btc/k*VBYTE*.
  */
-static struct command_result *getfeerate(struct command *cmd,
-                                         const char *buf UNUSED,
-                                         const jsmntok_t *toks UNUSED)
+static struct command_result *estimatefees(struct command *cmd,
+                                           const char *buf UNUSED,
+                                           const jsmntok_t *toks UNUSED)
 {
-	const char *mode;
 	char *err;
-	u32 *blocks;
 	bool valid;
-	u64 feerate = 0;
+	// slow, normal, urgent, very_urgent
+	int targets[4] = {155, 5, 3, 2};
+	u64 feerates[4];
 
-	if (!param(cmd, buf, toks,
-		   p_req("blocks", param_number, &blocks),
-		   p_req("mode", param_string, &mode),
-		   NULL))
+	if (!param(cmd, buf, toks, NULL))
 	    return command_param_failed();
-	
-	if (*blocks == 100)
-		*blocks = 144;
-
-	plugin_log(cmd->plugin, LOG_INFORM, "getfeerate for blocks %d", *blocks);
 
 	// fetch feerates
 	const char *feerate_url = tal_fmt(cmd->plugin, "%s/fee-estimates", endpoint);
@@ -294,23 +286,43 @@ static struct command_result *getfeerate(struct command *cmd,
 		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
-	// get feerate for block
-	const jsmntok_t *feeratetok = json_get_member(feerate_res, tokens, 
-		tal_fmt(cmd->plugin, "%d", *blocks));
-	// This puts a feerate in sat/vB multiplied by 10**7 in 'feerate' ...
-	if (!feeratetok || !json_to_millionths(feerate_res, feeratetok, &feerate)) {
-		err = tal_fmt(cmd,"%s: had no feerate for block %d (%.*s)?",
-			      cmd->methodname, (int)*blocks, (int)sizeof(feerate_res),
-			      feerate_res);
-		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+	// Get the feerate for each target
+	for (size_t i = 0; i < ARRAY_SIZE(feerates); i++) {
+		const jsmntok_t *feeratetok =
+			json_get_member(feerate_res, tokens,
+					tal_fmt(cmd->plugin, "%d", targets[i]));
+		// This puts a feerate in sat/vB multiplied by 10**7 in 'feerate' ...
+		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok, &feerates[i])) {
+			err = tal_fmt(cmd,"%s: had no feerate for block %d (%.*s)?",
+				      cmd->methodname, targets[i], (int)sizeof(feerate_res),
+				      feerate_res);
+			plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
+			return command_done_err(cmd, BCLI_ERROR, err, NULL);
+		}
+
+		// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
+		feerates[i] /= 10000;
 	}
 
-	plugin_log(cmd->plugin, LOG_INFORM, "feerate: %"PRIu64, feerate);
-
-	// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
 	struct json_stream *response = jsonrpc_stream_success(cmd);
-	json_add_u64(response, "feerate", feerate / 10000);
+	json_add_u64(response, "opening", feerates[1]);
+	json_add_u64(response, "mutual_close", feerates[1]);
+	json_add_u64(response, "unilateral_close", feerates[3]);
+	json_add_u64(response, "delayed_to_us", feerates[1]);
+	json_add_u64(response, "htlc_resolution", feerates[2]);
+	json_add_u64(response, "penalty", feerates[2]);
+	/* We divide the slow feerate for the minimum acceptable, lightningd
+	 * will use floor if it's hit, though. */
+	json_add_u64(response, "min_acceptable", feerates[0] / 2);
+	/* BOLT #2:
+	*
+	* Given the variance in fees, and the fact that the transaction may be
+	* spent in the future, it's a good idea for the fee payer to keep a good
+	* margin (say 5x the expected fee requirement)
+	*
+	* 10 is lightningd's default for bitcoind-max-multiplier
+	*/
+	json_add_u64(response, "max_acceptable", feerates[3] * 10);
 
 	return command_finished(cmd, response);
 }
@@ -503,11 +515,11 @@ static const struct plugin_command commands[] = {
 		getchaininfo
 	},
 	{
-		"getfeerate",
+		"estimatefees",
 		"bitcoin",
 		"Get the Bitcoin feerate in btc/kilo-vbyte.",
 		"",
-		getfeerate
+		estimatefees
 	},
 	{
 		"sendrawtransaction",
