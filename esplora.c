@@ -263,7 +263,7 @@ static struct command_result *getfeerate(struct command *cmd,
 	char *err;
 	u32 *blocks;
 	bool valid;
-	double feerate = 0;
+	u64 feerate = 0;
 
 	if (!param(cmd, buf, toks,
 		   p_req("blocks", param_number, &blocks),
@@ -297,7 +297,8 @@ static struct command_result *getfeerate(struct command *cmd,
 	// get feerate for block
 	const jsmntok_t *feeratetok = json_get_member(feerate_res, tokens, 
 		tal_fmt(cmd->plugin, "%d", *blocks));
-	if (!feeratetok || !json_to_double(feerate_res, feeratetok, &feerate)) {
+	// This puts a feerate in sat/vB multiplied by 10**7 in 'feerate' ...
+	if (!feeratetok || !json_to_millionths(feerate_res, feeratetok, &feerate)) {
 		err = tal_fmt(cmd,"%s: had no feerate for block %d (%.*s)?",
 			      cmd->methodname, (int)*blocks, (int)sizeof(feerate_res),
 			      feerate_res);
@@ -305,11 +306,11 @@ static struct command_result *getfeerate(struct command *cmd,
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
-	plugin_log(cmd->plugin, LOG_INFORM, "feerate: %f", feerate);
+	plugin_log(cmd->plugin, LOG_INFORM, "feerate: %"PRIu64, feerate);
 
-	// send feerate in response
+	// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
 	struct json_stream *response = jsonrpc_stream_success(cmd);
-	json_add_u64(response, "feerate", feerate * 100000);
+	json_add_u64(response, "feerate", feerate / 10000);
 
 	return command_finished(cmd, response);
 }
