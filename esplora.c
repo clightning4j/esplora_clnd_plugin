@@ -83,7 +83,7 @@ static struct curl_memory_data *request_data(const char *url, const bool post, c
 	long response_code;
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200) {
-    fprintf(stderr, "response_code != 200\n");
+		fprintf(stderr, "response_code != 200\n");
 		return NULL;
 	}
 	curl_easy_cleanup(curl);
@@ -213,9 +213,9 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 	}
 	plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash, blockhash_url);
 
-  // Esplora serves raw block
-  const char *block_url = tal_fmt(cmd->plugin,
-  	"%s/block/%s/raw", endpoint, blockhash);
+	// Esplora serves raw block
+	const char *block_url = tal_fmt(cmd->plugin,
+		"%s/block/%s/raw", endpoint, blockhash);
 	struct curl_memory_data *chunk = request_data(block_url, false, NULL);
 	if (!chunk || !chunk->memory) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
@@ -224,15 +224,14 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 		return getrawblockbyheight_notfound(cmd);
 	}
 
-  // parse rawblock output
-  const char *rawblock = tal_hexstr(cmd->plugin, chunk->memory, chunk->size);
-  if (!rawblock) {
-    err = tal_fmt(cmd, "%s: convert error on %s",
+	// parse rawblock output
+	const char *rawblock = tal_hexstr(cmd->plugin, chunk->memory, chunk->size);
+	if (!rawblock) {
+		err = tal_fmt(cmd, "%s: convert error on %s",
 					cmd->methodname, block_url);
-    plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
-    return command_done_err(cmd, BCLI_ERROR, err, NULL);
-  }
-  //plugin_log(cmd->plugin, LOG_INFORM, "rawblock: %s", rawblock);
+		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
+		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+	}
 
 	// send response with block and blockhash in hex format
 	response = jsonrpc_stream_success(cmd);
