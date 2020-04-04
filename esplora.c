@@ -262,7 +262,7 @@ static struct command_result *estimatefees(struct command *cmd,
 	char *err;
 	bool valid;
 	// slow, normal, urgent, very_urgent
-	int targets[4] = {155, 5, 3, 2};
+	int targets[4] = {144, 5, 3, 2};
 	u64 feerates[4];
 
 	if (!param(cmd, buf, toks, NULL))
