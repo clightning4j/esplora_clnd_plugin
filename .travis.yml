@@ -1,0 +1,9 @@
+language: c
+os:
+  - linux
+addons:
+  apt:
+    packages:
+      - clang-format-3.8
+script:
+  - clang-format -i *.c && git diff --exit-code
