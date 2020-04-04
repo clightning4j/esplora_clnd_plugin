@@ -22,7 +22,6 @@
 #include <curl/curl.h>
 
 static char *endpoint = NULL;
-static char *blockchair_endpoint = NULL;
 static char *cainfo_path = NULL;
 static u64 verbose = 0;
 
@@ -187,9 +186,7 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
                                                   const jsmntok_t *toks)
 {
 	struct json_stream *response;
-	const jsmntok_t *tokens, *blocktok;
 	u32 *height;
-	bool valid;
 	char *err;
 
 	if (!param(cmd, buf, toks,
@@ -208,10 +205,9 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 	}
 	plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash, blockhash_url);
 
-	// Esplora doesn't serve raw blocks !
-	// Open issue from darosior: https://github.com/Blockstream/esplora/issues/171
-	const char *block_url = tal_fmt(cmd->plugin, 
-		"%s/raw/block/%s", blockchair_endpoint, blockhash);
+  // Esplora serves raw block
+  const char *block_url = tal_fmt(cmd->plugin,
+  	"%s/block/%s/raw", endpoint, blockhash);
 	const char *block_res = request_get(block_url);
 	if (!block_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
@@ -221,28 +217,15 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 	}
 
 	// parse rawblock output
-	tokens = json_parse_input(cmd, block_res,
-				  strlen(block_res), &valid);
-	if (!tokens) {
-		err = tal_fmt(cmd, "%s: json error on %s (%.*s)?",
+  const char *rawblock = tal_hex(cmd->plugin, block_res);
+  if (!rawblock) {
+  	err = tal_fmt(cmd, "%s: convert error on %s (%.*s)?",
 					cmd->methodname, block_url, (int)sizeof(block_res),
 					block_res);
 		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
-
-	// get rawblock field
-	blocktok = json_delve(block_res, tokens, tal_fmt(cmd->plugin, 
-		".data.%s.raw_block", blockhash));
-	if (!blocktok) {
-		err = tal_fmt(cmd,"%s: had no rawblock for block %s from %s (%.*s)?",
-			      cmd->methodname, blockhash, block_url, (int)sizeof(block_res),
-			      block_res);
-		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	const char *rawblock = json_strdup(cmd, block_res, blocktok);
-	//plugin_log(cmd->plugin, LOG_INFORM, "rawblock: %s", rawblock);
+  plugin_log(cmd->plugin, LOG_INFORM, "rawblock: %s", rawblock);
 
 	// send response with block and blockhash in hex format
 	response = jsonrpc_stream_success(cmd);
@@ -547,10 +530,6 @@ int main(int argc, char *argv[])
 				  "string",
 				  "The URL of the esplora instance to hit (including '/api').",
 				  charp_option, &endpoint),
-		    plugin_option("blockchair-api-endpoint",
-				  "string",
-				  "Select the blockchair api url only to fetch rawblocks.",
-				  charp_option, &blockchair_endpoint),
 		    plugin_option("esplora-cainfo",
 				  "string",
 				  "Set path to Certificate Authority (CA) bundle.",
