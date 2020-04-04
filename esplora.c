@@ -26,7 +26,7 @@ static char *cainfo_path = NULL;
 static u64 verbose = 0;
 
 struct curl_memory_data {
-  char *memory;
+  u8 *memory;
   size_t size;
 };
 
@@ -34,26 +34,26 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
 {
   size_t realsize = size * nmemb;
   struct curl_memory_data *mem = (struct curl_memory_data *)userp;
- 
-  char *ptr = realloc(mem->memory, mem->size + realsize + 1);
+
+  u8 *ptr = realloc(mem->memory, mem->size + realsize + 1);
   if(ptr == NULL) {
-    /* out of memory! */ 
-    printf("not enough memory (realloc returned NULL)\n");
+    /* out of memory! */
+    fprintf(stderr, "not enough memory (realloc returned NULL)\n");
     return 0;
   }
- 
+
   mem->memory = ptr;
   memcpy(&(mem->memory[mem->size]), contents, realsize);
   mem->size += realsize;
   mem->memory[mem->size] = 0;
- 
+
   return realsize;
 }
 
-static char *request(const char *url, const bool post, const char* data) {
-	struct curl_memory_data chunk;
-	chunk.memory = malloc(64);
-	chunk.size = 0;
+static struct curl_memory_data *request_data(const char *url, const bool post, const char* data) {
+	struct curl_memory_data *chunk = malloc(sizeof(struct curl_memory_data));
+	chunk->memory = malloc(64);
+	chunk->size = 0;
 
 	CURL *curl;
 	CURLcode res;
@@ -73,7 +73,7 @@ static char *request(const char *url, const bool post, const char* data) {
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
 	}
 	curl_easy_setopt(curl, CURLOPT_CAPATH, "/system/etc/security/cacerts");
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)chunk);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
 	res = curl_easy_perform(curl);
@@ -83,10 +83,18 @@ static char *request(const char *url, const bool post, const char* data) {
 	long response_code;
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200) {
+    fprintf(stderr, "response_code != 200\n");
 		return NULL;
 	}
 	curl_easy_cleanup(curl);
-	return chunk.memory;
+  return chunk;
+}
+
+static char *request(const char *url, const bool post, const char* data) {
+  struct curl_memory_data *chunk = request_data(url, post, data);
+  if (chunk == NULL)
+    return NULL;
+  return (char *)chunk->memory;
 }
 
 static char *request_get(const char *url) {
@@ -208,24 +216,23 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
   // Esplora serves raw block
   const char *block_url = tal_fmt(cmd->plugin,
   	"%s/block/%s/raw", endpoint, blockhash);
-	const char *block_res = request_get(block_url);
-	if (!block_res) {
+	struct curl_memory_data *chunk = request_data(block_url, false, NULL);
+	if (!chunk || !chunk->memory) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
 		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
 		// block not found as getrawblockbyheight_notfound
 		return getrawblockbyheight_notfound(cmd);
 	}
 
-	// parse rawblock output
-  const char *rawblock = tal_hex(cmd->plugin, block_res);
+  // parse rawblock output
+  const char *rawblock = tal_hexstr(cmd->plugin, chunk->memory, chunk->size);
   if (!rawblock) {
-  	err = tal_fmt(cmd, "%s: convert error on %s (%.*s)?",
-					cmd->methodname, block_url, (int)sizeof(block_res),
-					block_res);
-		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-  plugin_log(cmd->plugin, LOG_INFORM, "rawblock: %s", rawblock);
+    err = tal_fmt(cmd, "%s: convert error on %s",
+					cmd->methodname, block_url);
+    plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  //plugin_log(cmd->plugin, LOG_INFORM, "rawblock: %s", rawblock);
 
 	// send response with block and blockhash in hex format
 	response = jsonrpc_stream_success(cmd);
