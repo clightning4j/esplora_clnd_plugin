@@ -35,14 +35,13 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
   size_t realsize = size * nmemb;
   struct curl_memory_data *mem = (struct curl_memory_data *)userp;
 
-  u8 *ptr = realloc(mem->memory, mem->size + realsize + 1);
-  if(ptr == NULL) {
+
+  if (!tal_resize(&mem->memory, mem->size + realsize + 1)) {
     /* out of memory! */
     fprintf(stderr, "not enough memory (realloc returned NULL)\n");
     return 0;
   }
 
-  mem->memory = ptr;
   memcpy(&(mem->memory[mem->size]), contents, realsize);
   mem->size += realsize;
   mem->memory[mem->size] = 0;
@@ -50,10 +49,10 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
   return realsize;
 }
 
-static struct curl_memory_data *request_data(const char *url, const bool post, const char* data) {
-	struct curl_memory_data *chunk = malloc(sizeof(struct curl_memory_data));
-	chunk->memory = malloc(64);
-	chunk->size = 0;
+static u8 *request(const tal_t *ctx, const char *url, const bool post, const char* data) {
+	struct curl_memory_data chunk;
+	chunk.memory = tal_arr(ctx, u8, 64);
+	chunk.size = 0;
 
 	CURL *curl;
 	CURLcode res;
@@ -73,36 +72,29 @@ static struct curl_memory_data *request_data(const char *url, const bool post, c
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
 	}
 	curl_easy_setopt(curl, CURLOPT_CAPATH, "/system/etc/security/cacerts");
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)chunk);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
 	res = curl_easy_perform(curl);
 	if(res != CURLE_OK) {
-		return NULL;
+		return tal_free(chunk.memory);
 	}
 	long response_code;
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200) {
-		fprintf(stderr, "response_code != 200\n");
-		return NULL;
+		return tal_free(chunk.memory);
 	}
 	curl_easy_cleanup(curl);
-  return chunk;
+	tal_resize(&chunk.memory, chunk.size);
+	return chunk.memory;
 }
 
-static char *request(const char *url, const bool post, const char* data) {
-  struct curl_memory_data *chunk = request_data(url, post, data);
-  if (chunk == NULL)
-    return NULL;
-  return (char *)chunk->memory;
+static char *request_get(const tal_t *ctx, const char *url) {
+	return (char *)request(ctx, url, false, NULL);
 }
 
-static char *request_get(const char *url) {
-	return request(url, false, NULL);
-}
-
-static char *request_post(const char *url, const char* data) {
-	return request(url, true, data);
+static char *request_post(const tal_t *ctx, const char *url, const char* data) {
+	return (char *)request(ctx, url, true, data);
 }
 
 static char* get_network_from_genesis_block(const char *blockhash) {
@@ -133,7 +125,7 @@ static struct command_result *getchaininfo(struct command *cmd,
 
 	// fetch block genesis hash
 	const char *block_genesis_url = tal_fmt(cmd->plugin, "%s/block-height/0", endpoint);
-	const char *block_genesis = request_get(block_genesis_url);
+	const char *block_genesis = request_get(cmd, block_genesis_url);
 	if (!block_genesis) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_genesis_url);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -142,7 +134,7 @@ static struct command_result *getchaininfo(struct command *cmd,
 
 	// fetch block count
 	const char *blockcount_url = tal_fmt(cmd->plugin, "%s/blocks/tip/height", endpoint);
-	const char *blockcount = request_get(blockcount_url);
+	const char *blockcount = request_get(cmd, blockcount_url);
 	if (!blockcount) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, blockcount_url);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -206,7 +198,7 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 
 	// fetch blockhash from block height
 	const char *blockhash_url = tal_fmt(cmd->plugin, "%s/block-height/%d", endpoint, *height);
-	const char *blockhash = request_get(blockhash_url);
+	const char *blockhash = request_get(cmd, blockhash_url);
 	if (!blockhash) {
 		// block not found as getrawblockbyheight_notfound
 		return getrawblockbyheight_notfound(cmd);
@@ -216,8 +208,8 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 	// Esplora serves raw block
 	const char *block_url = tal_fmt(cmd->plugin,
 		"%s/block/%s/raw", endpoint, blockhash);
-	struct curl_memory_data *chunk = request_data(block_url, false, NULL);
-	if (!chunk || !chunk->memory) {
+	const u8 *block_res = request(cmd, block_url, false, NULL);
+	if (!block_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
 		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
 		// block not found as getrawblockbyheight_notfound
@@ -225,7 +217,7 @@ static struct command_result *getrawblockbyheight(struct command *cmd,
 	}
 
 	// parse rawblock output
-	const char *rawblock = tal_hexstr(cmd->plugin, chunk->memory, chunk->size);
+	const char *rawblock = tal_hexstr(cmd->plugin, block_res, tal_count(block_res));
 	if (!rawblock) {
 		err = tal_fmt(cmd, "%s: convert error on %s",
 					cmd->methodname, block_url);
@@ -259,7 +251,7 @@ static struct command_result *estimatefees(struct command *cmd,
 
 	// fetch feerates
 	const char *feerate_url = tal_fmt(cmd->plugin, "%s/fee-estimates", endpoint);
-	const char *feerate_res = request_get(feerate_url);
+	const char *feerate_res = request_get(cmd, feerate_url);
 	if (!feerate_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, feerate_url);
 		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
@@ -347,7 +339,7 @@ static struct command_result *getutxout(struct command *cmd,
 
 	// check transaction output is spent
 	const char *status_url = tal_fmt(cmd->plugin, "%s/tx/%s/outspend/%s", endpoint, txid, vout);
-	const char *status_res = request_get(status_url);
+	const char *status_res = request_get(cmd, status_url);
 	if (!status_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, status_url);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -379,7 +371,7 @@ static struct command_result *getutxout(struct command *cmd,
 
 	// get transaction information
 	const char *gettx_url = tal_fmt(cmd->plugin, "%s/tx/%s", endpoint, txid);
-	const char *gettx_res = request_get(gettx_url);
+	const char *gettx_res = request_get(cmd, gettx_url);
 	if (!gettx_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, gettx_url);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -463,7 +455,7 @@ static struct command_result *sendrawtransaction(struct command *cmd,
 	
 	// request post passing rawtransaction
 	const char *sendrawtx_url = tal_fmt(cmd->plugin, "%s/tx", endpoint);
-	const char *res = request_post(sendrawtx_url, tx);
+	const char *res = request_post(cmd, sendrawtx_url, tx);
 	struct json_stream *response = jsonrpc_stream_success(cmd);
 	if (!res) {
 		// send response with failure
