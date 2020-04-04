@@ -27,3 +27,4 @@ lightningd --testnet --disable-plugin bcli --log-level=debug \
 Extra options:
 - `--esplora-verbose=1`: enable curl verbosity
 - `--esplora-cainfo=<path>`: set absolute ca info path for cacert.pem (CA certificates extracted from Mozilla at https://curl.haxx.se/docs/caextract.html)
+- `--esplora-capath=<path>`: Specify directory holding CA certificates.

@@ -23,6 +23,7 @@
 
 static char *endpoint = NULL;
 static char *cainfo_path = NULL;
+static char *capath = NULL;
 static u64 verbose = 0;
 
 struct curl_memory_data {
@@ -67,11 +68,12 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   if (cainfo_path != NULL)
     curl_easy_setopt(curl, CURLOPT_CAINFO, cainfo_path);
+  if (capath != NULL)
+    curl_easy_setopt(curl, CURLOPT_CAPATH, capath);
   if (post) {
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
   }
-  curl_easy_setopt(curl, CURLOPT_CAPATH, "/system/etc/security/cacerts");
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
@@ -502,6 +504,9 @@ int main(int argc, char *argv[]) {
               plugin_option("esplora-cainfo", "string",
                             "Set path to Certificate Authority (CA) bundle.",
                             charp_option, &cainfo_path),
+              plugin_option("esplora-capath", "string",
+                            "Specify directory holding CA certificates.",
+                            charp_option, &capath),
               plugin_option("esplora-verbose", "int",
                             "Set verbose output (default 0).", u64_option,
                             &verbose),
