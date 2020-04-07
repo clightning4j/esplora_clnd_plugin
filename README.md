@@ -21,10 +21,11 @@ LDLIBS = -L/usr/local/lib -lm -lgmp -lsqlite3 -lz -lcurl $(COVFLAGS)
 Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and set plugin options, as the following:
 ```
 lightningd --testnet --disable-plugin bcli --log-level=debug \
---blockchair-api-endpoint https://api.blockchair.com/bitcoin/testnet --esplora-api-endpoint https://blockstream.info/testnet/api
+ --esplora-api-endpoint=https://blockstream.info/testnet/api
 ```
 
-Extra options:
+Full available options:
 - `--esplora-verbose=1`: enable curl verbosity
-- `--esplora-cainfo=<path>`: set absolute ca info path for cacert.pem (CA certificates extracted from Mozilla at https://curl.haxx.se/docs/caextract.html)
-- `--esplora-capath=<path>`: Specify directory holding CA certificates.
+- `--esplora-api-endpoint=<url>`: set esplora endpoint (as https://blockstream.info/testnet/api for testnet)
+- `--esplora-cainfo=<path>`: set path to Certificate Authority (CA) bundle (CA certificates extracted from Mozilla at https://curl.haxx.se/docs/caextract.html)
+- `--esplora-capath=<path>`: specify directory holding CA certificates.
