@@ -360,14 +360,14 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
              p_req("vout", param_string, &vout), NULL))
     return command_param_failed();
 
-  // convert vout to number
-  const char *error;
-  u32 vout_index;
-  if (!get_u32_from_string(NULL, &vout_index, vout, &error)) {
-    plugin_log(cmd->plugin, LOG_INFORM, "Conversion error occurred on %s (error: %s)",
-               vout, error);
-    return command_param_failed();
-  }
+	// convert vout to number
+	const char *error;
+	u32 vout_index;
+	if (!get_u32_from_string(cmd, &vout_index, vout, &error)) {
+		const char *err = tal_fmt(cmd, "Conversion error occurred on %s (error: %s)",
+					  vout, error);
+		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+	}
 
   // check transaction output is spent
   const char *status_url =
