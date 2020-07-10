@@ -31,6 +31,33 @@ struct curl_memory_data {
   size_t size;
 };
 
+static bool
+get_u32_from_string(const tal_t *ctx, u32 *parsed_number,
+		    const char *str, const char **err)
+{
+	char *endp;
+	u64 n;
+
+	errno = 0;
+	n = strtoul(str, &endp, 0);
+	if (*endp || !str[0]) {
+		*err = tal_fmt(NULL, "'%s' is not a number", str);
+		return false;
+	}
+	if (errno) {
+		*err = tal_fmt(NULL, "'%s' is out of range", str);
+		return false;
+	}
+
+	*parsed_number = n;
+	if (*parsed_number != n) {
+		*err = tal_fmt(NULL, "'%s' is too large (overflow)", str);
+		return false;
+	}
+
+	return true;
+}
+
 static size_t write_memory_callback(void *contents, size_t size, size_t nmemb,
                                     void *userp) {
   size_t realsize = size * nmemb;
@@ -151,11 +178,11 @@ static struct command_result *getchaininfo(struct command *cmd,
   }
   plugin_log(cmd->plugin, LOG_INFORM, "blockcount: %s", blockcount);
 
-  char *eptr;
-  const u32 height = strtoul(blockcount, &eptr, 10);
-  if (!height) {
-    err = tal_fmt(cmd, "%s: invalid height conversion on %s", cmd->methodname,
-                  blockcount);
+  const char *error;
+  u32 height;
+  if (!get_u32_from_string(NULL, &height, blockcount, &error)) {
+    err = tal_fmt(cmd, "%s: invalid height conversion on %s (error: %s)", cmd->methodname,
+                  blockcount, error);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
   }
 
@@ -334,11 +361,11 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
     return command_param_failed();
 
   // convert vout to number
-  char *eptr;
-  const u32 vout_index = strtoul(vout, &eptr, 10);
-  if (!vout_index) {
-    plugin_log(cmd->plugin, LOG_INFORM, "Conversion error occurred on %s",
-               vout);
+  const char *error;
+  u32 vout_index;
+  if (!get_u32_from_string(NULL, &vout_index, vout, &error)) {
+    plugin_log(cmd->plugin, LOG_INFORM, "Conversion error occurred on %s (error: %s)",
+               vout, error);
     return command_param_failed();
   }
 
