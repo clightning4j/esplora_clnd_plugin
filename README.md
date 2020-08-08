@@ -2,25 +2,25 @@
 
 Build status: [![Build Status](https://travis-ci.org/lvaccaro/esplora_clnd_plugin.png?branch=master)](https://travis-ci.org/lvaccaro/esplora_clnd_plugin)
 
-[c-lightning](https://github.com/ElementsProject/lightning) C plugin to use (as possible) [esplora web explorer](https://blockstream.info) to fetch bitcoin data.
+[c-lightning](https://github.com/ElementsProject/lightning) C plugin allows c-lightning to use [esplora web explorer](https://blockstream.info) for fetching bitcoin data and send transactions.
 
-1st c-lightning plugin with esplora integration is [sauron plugin](https://github.com/lightningd/plugins/tree/master/sauron) developped by [darosior](https://github.com/darosior).
+Based on [sauron plugin](https://github.com/lightningd/plugins/tree/master/sauron) c-lightning plugin with esplora integration by [darosior](https://github.com/darosior).
+
+#### Deps
+Install libcurl and libssl, on linux:
+```
+sudo apt-get install libcurl4-openssl-dev libssl-dev
+```
 
 #### Build
-
 1. copy `esplora.c` into `lightning/plugins` folder
-2. apply `Makefile.patch` to add esplora in plugins build (tested for clightning v0.9.0)
+2. apply `Makefile.patch` to add esplora in clightning plugins build (tested for clightning v0.9.0)
 ```
 patch -p1 < Makefile.patch
 ```
-3. edit main `lightning/Makefile` as the following:
-- add esplora plugin to PLUGIN list
+3. add libcurl to LDLIBS dep (needed for esplora plugin)
 ```
-PLUGINS=plugins/pay plugins/autoclean plugins/fundchannel plugins/bcli plugins/esplora
-```
-- add libcurl to LDLIBS dep (needed for esplora plugin)
-```
-LDLIBS = -L/usr/local/lib -lm -lgmp -lsqlite3 -lz -lcurl $(COVFLAGS)
+sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
 ```
 4. run make on your lightning folder
 
