@@ -1,0 +1,43 @@
+diff --git a/plugins/Makefile b/plugins/Makefile
+index 971f589e..6a95da8a 100644
+--- a/plugins/Makefile
++++ b/plugins/Makefile
+@@ -13,6 +13,9 @@ PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
+ PLUGIN_KEYSEND_SRC := plugins/keysend.c
+ PLUGIN_KEYSEND_OBJS := $(PLUGIN_KEYSEND_SRC:.c=.o)
+ 
++PLUGIN_ESPLORA_SRC := plugins/esplora.c
++PLUGIN_ESPLORA_OBJS := $(PLUGIN_ESPLORA_SRC:.c=.o)
++
+ PLUGIN_LIB_SRC := plugins/libplugin.c plugins/libplugin-pay.c
+ PLUGIN_LIB_HEADER := plugins/libplugin.h plugins/libplugin-pay.h
+ PLUGIN_LIB_OBJS := $(PLUGIN_LIB_SRC:.c=.o)
+@@ -23,7 +26,8 @@ PLUGIN_ALL_SRC :=				\
+ 	$(PLUGIN_FUNDCHANNEL_SRC)		\
+ 	$(PLUGIN_KEYSEND_SRC)			\
+ 	$(PLUGIN_LIB_SRC)			\
+-	$(PLUGIN_PAY_SRC)
++	$(PLUGIN_PAY_SRC)			\
++	$(PLUGIN_ESPLORA_SRC)
+ PLUGIN_ALL_HEADER :=				\
+ 	$(PLUGIN_LIB_HEADER)
+ PLUGIN_ALL_OBJS := $(PLUGIN_ALL_SRC:.c=.o)
+@@ -33,7 +37,8 @@ PLUGINS :=					\
+ 	plugins/bcli				\
+ 	plugins/fundchannel			\
+ 	plugins/keysend				\
+-	plugins/pay
++	plugins/pay				\
++	plugins/esplora
+ 
+ PLUGIN_COMMON_OBJS :=				\
+ 	bitcoin/base58.o			\
+@@ -84,6 +89,8 @@ plugins/bcli: bitcoin/chainparams.o $(PLUGIN_BCLI_OBJS) $(PLUGIN_LIB_OBJS) $(PLU
+ 
+ plugins/keysend: bitcoin/chainparams.o wire/tlvstream.o wire/gen_onion_wire.o $(PLUGIN_KEYSEND_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
+ 
++plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
++
+ $(PLUGIN_ALL_OBJS): $(PLUGIN_LIB_HEADER)
+ 
+ # Make sure these depend on everything.

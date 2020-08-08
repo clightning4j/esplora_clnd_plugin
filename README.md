@@ -5,8 +5,12 @@
 
 #### Build
 
-1. copy `esplora.c` and `Makefile` into `lightning/plugins` folder
-2. edit main `lightning/Makefile` as the following:
+1. copy `esplora.c` into `lightning/plugins` folder
+2. apply `Makefile.patch` to add esplora in plugins build (tested for clightning v0.9.0)
+```
+patch -p1 < Makefile.patch
+```
+3. edit main `lightning/Makefile` as the following:
 - add esplora plugin to PLUGIN list
 ```
 PLUGINS=plugins/pay plugins/autoclean plugins/fundchannel plugins/bcli plugins/esplora
@@ -15,7 +19,7 @@ PLUGINS=plugins/pay plugins/autoclean plugins/fundchannel plugins/bcli plugins/e
 ```
 LDLIBS = -L/usr/local/lib -lm -lgmp -lsqlite3 -lz -lcurl $(COVFLAGS)
 ```
-3. run make on your lightning folder
+4. run make on your lightning folder
 
 #### Run
 Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and set plugin options, as the following:
