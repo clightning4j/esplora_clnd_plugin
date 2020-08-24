@@ -15,7 +15,7 @@ before_script:
 script:
   - git clone https://github.com/ElementsProject/lightning.git
   - cd lightning
-  - git checkout v0.9.0
+  - git checkout v0.9.1
   - pip3 install -r requirements.txt
   - cp ../esplora.* plugins/
   - patch -p1 < ../Makefile.patch
