@@ -1,5 +1,5 @@
 diff --git a/plugins/Makefile b/plugins/Makefile
-index 971f589e..6a95da8a 100644
+index 562e61eb..79b416ce 100644
 --- a/plugins/Makefile
 +++ b/plugins/Makefile
 @@ -13,6 +13,9 @@ PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
@@ -9,35 +9,31 @@ index 971f589e..6a95da8a 100644
 +PLUGIN_ESPLORA_SRC := plugins/esplora.c
 +PLUGIN_ESPLORA_OBJS := $(PLUGIN_ESPLORA_SRC:.c=.o)
 +
- PLUGIN_LIB_SRC := plugins/libplugin.c plugins/libplugin-pay.c
- PLUGIN_LIB_HEADER := plugins/libplugin.h plugins/libplugin-pay.h
+ PLUGIN_LIB_SRC := plugins/libplugin.c
+ PLUGIN_LIB_HEADER := plugins/libplugin.h
  PLUGIN_LIB_OBJS := $(PLUGIN_LIB_SRC:.c=.o)
-@@ -23,7 +26,8 @@ PLUGIN_ALL_SRC :=				\
- 	$(PLUGIN_FUNDCHANNEL_SRC)		\
+@@ -28,6 +31,7 @@ PLUGIN_ALL_SRC :=				\
  	$(PLUGIN_KEYSEND_SRC)			\
  	$(PLUGIN_LIB_SRC)			\
--	$(PLUGIN_PAY_SRC)
-+	$(PLUGIN_PAY_SRC)			\
-+	$(PLUGIN_ESPLORA_SRC)
+ 	$(PLUGIN_PAY_LIB_SRC)			\
++	$(PLUGIN_ESPLORA_SRC)			\
+ 	$(PLUGIN_PAY_SRC)
  PLUGIN_ALL_HEADER :=				\
- 	$(PLUGIN_LIB_HEADER)
- PLUGIN_ALL_OBJS := $(PLUGIN_ALL_SRC:.c=.o)
-@@ -33,7 +37,8 @@ PLUGINS :=					\
+ 	$(PLUGIN_LIB_HEADER)			\
+@@ -39,6 +43,7 @@ PLUGINS :=					\
  	plugins/bcli				\
  	plugins/fundchannel			\
  	plugins/keysend				\
--	plugins/pay
-+	plugins/pay				\
-+	plugins/esplora
++	plugins/esplora				\
+ 	plugins/pay
  
  PLUGIN_COMMON_OBJS :=				\
- 	bitcoin/base58.o			\
-@@ -84,6 +89,8 @@ plugins/bcli: bitcoin/chainparams.o $(PLUGIN_BCLI_OBJS) $(PLUGIN_LIB_OBJS) $(PLU
+@@ -89,6 +94,8 @@ plugins/fundchannel: common/addr.o $(PLUGIN_FUNDCHANNEL_OBJS) $(PLUGIN_LIB_OBJS)
  
- plugins/keysend: bitcoin/chainparams.o wire/tlvstream.o wire/gen_onion_wire.o $(PLUGIN_KEYSEND_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
+ plugins/bcli: bitcoin/chainparams.o $(PLUGIN_BCLI_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
  
 +plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
 +
- $(PLUGIN_ALL_OBJS): $(PLUGIN_LIB_HEADER)
+ plugins/keysend: bitcoin/chainparams.o wire/tlvstream.o wire/gen_onion_wire.o $(PLUGIN_KEYSEND_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_PAY_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
+ $(PLUGIN_KEYSEND_OBJS): $(PLUGIN_PAY_LIB_HEADER)
  
- # Make sure these depend on everything.
