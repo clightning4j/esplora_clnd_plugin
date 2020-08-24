@@ -414,15 +414,13 @@ static struct command_result *estimatefees(struct command *cmd,
 }
 
 static struct command_result *getutxout(struct command *cmd, const char *buf,
-					const jsmntok_t *toks)
-{
-	struct json_stream *response;
-	const char *txid, *vout;
-	char *err;
-	bool spent = false;
-	jsmntok_t *tokens;
-	struct bitcoin_tx_output output;
-	bool valid = false;
+                                        const jsmntok_t *toks) {
+  struct json_stream *response;
+  const char *txid, *vout;
+  char *err;
+  bool spent = false;
+  jsmntok_t *tokens;
+  struct bitcoin_tx_output output;
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getutxout");
 
@@ -441,21 +439,20 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
-	// check transaction output is spent
-	const char *status_url = tal_fmt(cmd->plugin, "%s/tx/%s/outspend/%s",
-					 esplora->endpoint, txid, vout);
-	const char *status_res = request_get(cmd, status_url);
-	if (!status_res) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      status_url);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	tokens = json_parse_input(cmd, status_res, strlen(status_res), &valid);
-	if (!tokens || !valid) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(status_res), status_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
+  // check transaction output is spent
+  const char *status_url =
+      tal_fmt(cmd->plugin, "%s/tx/%s/outspend/%s", endpoint, txid, vout);
+  const char *status_res = request_get(cmd, status_url);
+  if (!status_res) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, status_url);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  tokens = json_parse_simple(cmd, status_res, strlen(status_res));
+  if (!tokens) {
+    err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
+                  (int)sizeof(status_res), status_res);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
 
 	// parsing spent field
 	const jsmntok_t *spenttok =
@@ -474,21 +471,19 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 		return command_finished(cmd, response);
 	}
 
-	// get transaction information
-	const char *gettx_url =
-	    tal_fmt(cmd->plugin, "%s/tx/%s", esplora->endpoint, txid);
-	const char *gettx_res = request_get(cmd, gettx_url);
-	if (!gettx_res) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      gettx_url);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	tokens = json_parse_input(cmd, gettx_res, strlen(gettx_res), &valid);
-	if (!tokens || !valid) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(gettx_res), gettx_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
+  // get transaction information
+  const char *gettx_url = tal_fmt(cmd->plugin, "%s/tx/%s", endpoint, txid);
+  const char *gettx_res = request_get(cmd, gettx_url);
+  if (!gettx_res) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, gettx_url);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  tokens = json_parse_simple(cmd, gettx_res, strlen(gettx_res));
+  if (!tokens) {
+    err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
+                  (int)sizeof(gettx_res), gettx_res);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
 
 	// parsing vout array field
 	const jsmntok_t *vouttok = json_get_member(gettx_res, tokens, "vout");
