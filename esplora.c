@@ -275,7 +275,6 @@ static struct command_result *estimatefees(struct command *cmd,
                                            const char *buf UNUSED,
                                            const jsmntok_t *toks UNUSED) {
   char *err;
-  bool valid;
   // slow, normal, urgent, very_urgent
   int targets[4] = {144, 5, 3, 2};
   u64 feerates[4];
@@ -293,7 +292,7 @@ static struct command_result *estimatefees(struct command *cmd,
   }
   // parse feerates output
   const jsmntok_t *tokens =
-      json_parse_input(cmd, feerate_res, strlen(feerate_res), &valid);
+      json_parse_simple(cmd, feerate_res, strlen(feerate_res));
   if (!tokens) {
     err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
                   (int)sizeof(feerate_res), feerate_res);
@@ -349,7 +348,6 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
   bool spent = false;
   jsmntok_t *tokens;
   struct bitcoin_tx_output output;
-  bool valid = false;
 
   plugin_log(cmd->plugin, LOG_INFORM, "getutxout");
 
@@ -375,8 +373,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
     err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, status_url);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
   }
-  tokens = json_parse_input(cmd, status_res, strlen(status_res), &valid);
-  if (!tokens || !valid) {
+  tokens = json_parse_simple(cmd, status_res, strlen(status_res));
+  if (!tokens) {
     err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
                   (int)sizeof(status_res), status_res);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -405,8 +403,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
     err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, gettx_url);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
   }
-  tokens = json_parse_input(cmd, gettx_res, strlen(gettx_res), &valid);
-  if (!tokens || !valid) {
+  tokens = json_parse_simple(cmd, gettx_res, strlen(gettx_res));
+  if (!tokens) {
     err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
                   (int)sizeof(gettx_res), gettx_res);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
