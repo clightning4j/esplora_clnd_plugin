@@ -343,38 +343,38 @@ static struct command_result *estimatefees(struct command *cmd,
 	if (!param(cmd, buf, toks, NULL))
 		return command_param_failed();
 
-	// fetch feerates
 	const char *feerate_url =
+	// fetch feerates
 	    tal_fmt(cmd->plugin, "%s/fee-estimates", esplora->endpoint);
-	const char *feerate_res = request_get(cmd, feerate_url);
 	if (!feerate_res) {
+	const char *feerate_res = request_get(cmd, feerate_url);
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
 			      feerate_url);
 		plugin_log(cmd->plugin, LOG_UNUSUAL, "err: %s", err);
 		return estimatefees_null_response(cmd);
 	}
 	// parse feerates output
-	const jsmntok_t *tokens =
-	    json_parse_input(cmd, feerate_res, strlen(feerate_res), &valid);
-	if (!tokens) {
+  const jsmntok_t *tokens =
+      json_parse_simple(cmd, feerate_res, strlen(feerate_res));
+  if (!tokens) {
 		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
 			      (int)sizeof(feerate_res), feerate_res);
 		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
 		return estimatefees_null_response(cmd);
 	}
-	// Get the feerate for each target
 	for (size_t i = 0; i < tal_count(feerates); i++) {
+	// Get the feerate for each target
 		const jsmntok_t *feeratetok =
-		    json_get_member(feerate_res, tokens,
 				    tal_fmt(cmd->plugin, "%d", targets[i]));
+		    json_get_member(feerate_res, tokens,
 		// This puts a feerate in sat/vB multiplied by 10**7 in
 		// 'feerate'.
 		// Esplora can answer with a empty object like this {}, in this
 		// case we need to return a null response to say that is not
 		// possible to estimate the feerate.
 		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
-						       &feerates[i])) {
 			err = tal_fmt(cmd,
+						       &feerates[i])) {
 				      "%s: had no feerate for block %d (%.*s)?",
 				      cmd->methodname, targets[i],
 				      (int)sizeof(feerate_res), feerate_res);
