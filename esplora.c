@@ -278,7 +278,7 @@ static struct command_result *estimatefees(struct command *cmd,
   bool valid;
   // slow, normal, urgent, very_urgent
   int targets[4] = {144, 5, 3, 2};
-  u64 feerates[4];
+  u64 feerates[4] = {0, 0, 0, 0};
 
   if (!param(cmd, buf, toks, NULL))
     return command_param_failed();
@@ -311,7 +311,9 @@ static struct command_result *estimatefees(struct command *cmd,
                     cmd->methodname, targets[i], (int)sizeof(feerate_res),
                     feerate_res);
       plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-      return command_done_err(cmd, BCLI_ERROR, err, NULL);
+      if (i == 0)
+        return command_done_err(cmd, BCLI_ERROR, err, NULL);
+      feerates[i] = feerates[i - 1];
     }
 
     // ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
