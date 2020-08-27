@@ -266,20 +266,20 @@ getrawblockbyheight(struct command *cmd, const char *buf, const jsmntok_t *toks)
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getrawblockbyheight %d", *height);
 
-	// fetch blockhash from block height
-	const char *blockhash_url = tal_fmt(cmd->plugin, "%s/block-height/%d",
-					    esplora->endpoint, *height);
-	const char *blockhash_ = request_get(cmd, blockhash_url);
-	if (!blockhash_) {
-		// block not found as getrawblockbyheight_notfound
-		return getrawblockbyheight_notfound(cmd);
-	}
-	char *blockhash = tal_dup_arr(cmd, char, (char *)blockhash_,
-				      tal_count(blockhash_), 1);
-	blockhash[tal_count(blockhash_)] = '\0';
-	tal_free(blockhash_);
-	plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash,
-		   blockhash_url);
+  // fetch blockhash from block height
+  const char *blockhash_url =
+      tal_fmt(cmd->plugin, "%s/block-height/%d", endpoint, *height);
+  const char *blockhash_ = request_get(cmd, blockhash_url);
+  if (!blockhash_) {
+    // block not found as getrawblockbyheight_notfound
+    return getrawblockbyheight_notfound(cmd);
+  }
+  char *blockhash =
+      tal_dup_arr(cmd, char, (char *)blockhash_, tal_count(blockhash_), 1);
+  blockhash[tal_count(blockhash_)] = '\0';
+  tal_free(blockhash_);
+  plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash,
+             blockhash_url);
 
 	// Esplora serves raw block
 	const char *block_url = tal_fmt(cmd->plugin, "%s/block/%s/raw",
