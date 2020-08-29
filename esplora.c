@@ -356,7 +356,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
   struct bitcoin_tx_output output;
   bool valid = false;
 
-  plugin_log(cmd->plugin, LOG_INFORM, "getutxout");
+  if (!param(cmd, buf, toks, NULL))
+    return command_param_failed();
 
   /* bitcoin-cli wants strings. */
   if (!param(cmd, buf, toks, p_req("txid", param_string, &txid),
@@ -371,6 +372,9 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
         cmd, "Conversion error occurred on %s (error: %s)", vout, error);
     return command_done_err(cmd, BCLI_ERROR, err, NULL);
   }
+
+  plugin_log(cmd->plugin, LOG_INFORM, "getutxout: txid %s - vout %d", txid,
+             vout_index);
 
   // check transaction output is spent
   const char *status_url =
