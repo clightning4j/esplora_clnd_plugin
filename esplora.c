@@ -25,6 +25,7 @@ static char *endpoint = NULL;
 static char *cainfo_path = NULL;
 static char *capath = NULL;
 static u64 verbose = 0;
+static u32 n_retries = 4;
 
 struct curl_memory_data {
   u8 *memory;
@@ -74,6 +75,23 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb,
   return realsize;
 }
 
+/** Preform a curl request, retrying up to `n_retries` times. */
+static bool perform_request(CURL *curl)
+{
+	CURLcode res;
+	u32 retries = 0;
+
+	for (;;) {
+		res = curl_easy_perform(curl);
+		if (res == CURLE_OK)
+			return true;
+
+		if (++retries > n_retries)
+			return false;
+		sleep(1);
+	}
+}
+
 static u8 *request(const tal_t *ctx, const char *url, const bool post,
                    const char *data) {
 	long response_code;
@@ -82,7 +100,6 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	chunk.size = 0;
 
 	CURL *curl;
-	CURLcode res;
 	curl = curl_easy_init();
 	if (!curl) {
 		return NULL;
@@ -104,8 +121,8 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK)
+	/* This populates the curl struct on success. */
+	if (!perform_request(curl))
 		return tal_free(chunk.memory);
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200)
@@ -541,5 +558,8 @@ int main(int argc, char *argv[]) {
               plugin_option("esplora-verbose", "int",
                             "Set verbose output (default 0).", u64_option,
                             &verbose),
+	      plugin_option("esplora-retries", "int",
+		      "How many times should we retry a request to the"
+		      "endpoint before dying ?", u32_option, &n_retries),
               NULL);
 }
