@@ -29,8 +29,9 @@ struct esplora {
 	char *cainfo_path;
 	char *capath;
 
-	/* Make curl request more verbose. */
-	bool verbose;
+	/* Make curl request more verbose.
+	 * FIXME: this should be a bool! */
+	u64 verbose;
 
 	/* How many times do we retry curl requests ? */
 	u32 n_retries;
@@ -120,12 +121,12 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-	if (verbose != 0)
+	if (esplora->verbose != 0)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-	if (cainfo_path != NULL)
-		curl_easy_setopt(curl, CURLOPT_CAINFO, cainfo_path);
-	if (capath != NULL)
-		curl_easy_setopt(curl, CURLOPT_CAPATH, capath);
+	if (esplora->cainfo_path != NULL)
+		curl_easy_setopt(curl, CURLOPT_CAINFO, esplora->cainfo_path);
+	if (esplora->capath != NULL)
+		curl_easy_setopt(curl, CURLOPT_CAPATH, esplora->capath);
 	if (post) {
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
@@ -188,27 +189,27 @@ static struct command_result *getchaininfo(struct command *cmd,
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getchaininfo");
 
-	// fetch block genesis hash
-	const char *block_genesis_url =
-	    tal_fmt(cmd->plugin, "%s/block-height/0", esplora->endpoint);
-	const char *block_genesis = request_get(cmd, block_genesis_url);
-	if (!block_genesis) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      block_genesis_url);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	plugin_log(cmd->plugin, LOG_INFORM, "block_genesis: %s", block_genesis);
+  // fetch block genesis hash
+  const char *block_genesis_url =
+      tal_fmt(cmd->plugin, "%s/block-height/0", esplora->endpoint);
+  const char *block_genesis = request_get(cmd, block_genesis_url);
+  if (!block_genesis) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
+                  block_genesis_url);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  plugin_log(cmd->plugin, LOG_INFORM, "block_genesis: %s", block_genesis);
 
-	// fetch block count
-	const char *blockcount_url =
-	    tal_fmt(cmd->plugin, "%s/blocks/tip/height", esplora->endpoint);
-	const char *blockcount = request_get(cmd, blockcount_url);
-	if (!blockcount) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      blockcount_url);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	plugin_log(cmd->plugin, LOG_INFORM, "blockcount: %s", blockcount);
+  // fetch block count
+  const char *blockcount_url =
+      tal_fmt(cmd->plugin, "%s/blocks/tip/height", esplora->endpoint);
+  const char *blockcount = request_get(cmd, blockcount_url);
+  if (!blockcount) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
+                  blockcount_url);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  plugin_log(cmd->plugin, LOG_INFORM, "blockcount: %s", blockcount);
 
 	const char *error;
 	u32 height;
@@ -267,7 +268,7 @@ getrawblockbyheight(struct command *cmd, const char *buf, const jsmntok_t *toks)
 
   // fetch blockhash from block height
   const char *blockhash_url =
-      tal_fmt(cmd->plugin, "%s/block-height/%d", endpoint, *height);
+      tal_fmt(cmd->plugin, "%s/block-height/%d", esplora->endpoint, *height);
   const char *blockhash_ = request_get(cmd, blockhash_url);
   if (!blockhash_) {
     // block not found as getrawblockbyheight_notfound
@@ -280,17 +281,16 @@ getrawblockbyheight(struct command *cmd, const char *buf, const jsmntok_t *toks)
   plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash,
              blockhash_url);
 
-	// Esplora serves raw block
-	const char *block_url = tal_fmt(cmd->plugin, "%s/block/%s/raw",
-					esplora->endpoint, blockhash);
-	const u8 *block_res = request(cmd, block_url, false, NULL);
-	if (!block_res) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      block_url);
-		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
-		// block not found as getrawblockbyheight_notfound
-		return getrawblockbyheight_notfound(cmd);
-	}
+  // Esplora serves raw block
+  const char *block_url =
+      tal_fmt(cmd->plugin, "%s/block/%s/raw", esplora->endpoint, blockhash);
+  const u8 *block_res = request(cmd, block_url, false, NULL);
+  if (!block_res) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
+    plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
+    // block not found as getrawblockbyheight_notfound
+    return getrawblockbyheight_notfound(cmd);
+  }
 
 	// parse rawblock output
 	const char *rawblock =
@@ -440,7 +440,7 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 
   // check transaction output is spent
   const char *status_url =
-      tal_fmt(cmd->plugin, "%s/tx/%s/outspend/%s", endpoint, txid, vout);
+      tal_fmt(cmd->plugin, "%s/tx/%s/outspend/%s", esplora->endpoint, txid, vout);
   const char *status_res = request_get(cmd, status_url);
   if (!status_res) {
     err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, status_url);
@@ -471,7 +471,7 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	}
 
   // get transaction information
-  const char *gettx_url = tal_fmt(cmd->plugin, "%s/tx/%s", endpoint, txid);
+  const char *gettx_url = tal_fmt(cmd->plugin, "%s/tx/%s", esplora->endpoint, txid);
   const char *gettx_res = request_get(cmd, gettx_url);
   if (!gettx_res) {
     err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, gettx_url);
@@ -552,20 +552,18 @@ sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 
 	plugin_log(cmd->plugin, LOG_INFORM, "sendrawtransaction");
 
-	// request post passing rawtransaction
-	const char *sendrawtx_url =
-	    tal_fmt(cmd->plugin, "%s/tx", esplora->endpoint);
-	const char *res = request_post(cmd, sendrawtx_url, tx);
-	struct json_stream *response = jsonrpc_stream_success(cmd);
-	if (!res) {
-		// send response with failure
-		const char *err =
-		    tal_fmt(cmd, "%s: invalid tx (%.*s)? on (%.*s)?",
-			    cmd->methodname, (int)sizeof(tx), tx,
-			    (int)sizeof(sendrawtx_url), sendrawtx_url);
-		json_add_bool(response, "success", false);
-		json_add_string(response, "errmsg", err);
-	}
+  // request post passing rawtransaction
+  const char *sendrawtx_url = tal_fmt(cmd->plugin, "%s/tx", esplora->endpoint);
+  const char *res = request_post(cmd, sendrawtx_url, tx);
+  struct json_stream *response = jsonrpc_stream_success(cmd);
+  if (!res) {
+    // send response with failure
+    const char *err =
+        tal_fmt(cmd, "%s: invalid tx (%.*s)? on (%.*s)?", cmd->methodname,
+                (int)sizeof(tx), tx, (int)sizeof(sendrawtx_url), sendrawtx_url);
+    json_add_bool(response, "success", false);
+    json_add_string(response, "errmsg", err);
+  }
 
 	// send response with success
 	json_add_bool(response, "success", true);
@@ -586,7 +584,7 @@ static struct esplora *new_esplora(const tal_t *ctx)
 	esplora->endpoint = NULL;
 	esplora->capath = NULL;
 	esplora->cainfo_path = NULL;
-	esplora->verbose = false;
+	esplora->verbose = 0;
 	esplora->n_retries = 4;
 
 	return esplora;
@@ -612,23 +610,26 @@ int main(int argc, char *argv[])
 {
 	setup_locale();
 
+	/* Our global state. */
+	esplora = new_esplora(NULL);
+
   plugin_main(argv, init, PLUGIN_STATIC, false, NULL, commands,
               ARRAY_SIZE(commands), NULL, 0, NULL, 0,
               plugin_option(
                   "esplora-api-endpoint", "string",
                   "The URL of the esplora instance to hit (including '/api').",
-                  charp_option, &endpoint),
+                  charp_option, &esplora->endpoint),
               plugin_option("esplora-cainfo", "string",
                             "Set path to Certificate Authority (CA) bundle.",
-                            charp_option, &cainfo_path),
+                            charp_option, &esplora->cainfo_path),
               plugin_option("esplora-capath", "string",
                             "Specify directory holding CA certificates.",
-                            charp_option, &capath),
+                            charp_option, &esplora->capath),
               plugin_option("esplora-verbose", "int",
                             "Set verbose output (default 0).", u64_option,
-                            &verbose),
+                            &esplora->verbose),
 	      plugin_option("esplora-retries", "int",
 		      "How many times should we retry a request to the"
-		      "endpoint before dying ?", u32_option, &n_retries),
+		      "endpoint before dying ?", u32_option, &esplora->n_retries),
               NULL);
 }
