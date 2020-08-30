@@ -112,7 +112,6 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	chunk.size = 0;
 
 	CURL *curl;
-	CURLcode res;
 	curl = curl_easy_init();
 	if (!curl) {
 		return NULL;
@@ -134,8 +133,8 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK)
+	/* This populates the curl struct on success. */
+	if (!perform_request(curl))
 		return tal_free(chunk.memory);
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200)
@@ -613,28 +612,23 @@ int main(int argc, char *argv[])
 {
 	setup_locale();
 
-	/* Our global state. */
-	esplora = new_esplora(NULL);
-
-	plugin_main(
-	    argv, init, PLUGIN_STATIC, false, NULL, commands,
-	    ARRAY_SIZE(commands), NULL, 0, NULL, 0,
-	    plugin_option("esplora-api-endpoint", "string",
-			  "The URL of the esplora instance to hit "
-			  "(including '/api').",
-			  charp_option, &esplora->endpoint),
-	    plugin_option("esplora-cainfo", "string",
-			  "Set path to Certificate Authority (CA) bundle.",
-			  charp_option, &esplora->cainfo_path),
-	    plugin_option("esplora-capath", "string",
-			  "Specify directory holding CA certificates.",
-			  charp_option, &esplora->capath),
-	    plugin_option("esplora-verbose", "bool",
-			  "Set verbose output (default: false).", bool_option,
-			  &esplora->verbose),
-	    plugin_option("esplora-retries", "string",
-			  "How many times should we retry a request to the"
-			  "endpoint before dying ?",
-			  u32_option, &esplora->n_retries),
-	    NULL);
+  plugin_main(argv, init, PLUGIN_STATIC, false, NULL, commands,
+              ARRAY_SIZE(commands), NULL, 0, NULL, 0,
+              plugin_option(
+                  "esplora-api-endpoint", "string",
+                  "The URL of the esplora instance to hit (including '/api').",
+                  charp_option, &endpoint),
+              plugin_option("esplora-cainfo", "string",
+                            "Set path to Certificate Authority (CA) bundle.",
+                            charp_option, &cainfo_path),
+              plugin_option("esplora-capath", "string",
+                            "Specify directory holding CA certificates.",
+                            charp_option, &capath),
+              plugin_option("esplora-verbose", "int",
+                            "Set verbose output (default 0).", u64_option,
+                            &verbose),
+	      plugin_option("esplora-retries", "int",
+		      "How many times should we retry a request to the"
+		      "endpoint before dying ?", u32_option, &n_retries),
+              NULL);
 }
