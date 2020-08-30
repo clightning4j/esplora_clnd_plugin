@@ -20,11 +20,14 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <plugins/libplugin.h>
+#include <unistd.h>
 
 static char *endpoint = NULL;
 static char *cainfo_path = NULL;
 static char *capath = NULL;
 static u64 verbose = 0;
+static int wait_time = 60; //Time express in second
+static u64 retry_time = 4; //How many type the api should be retry the call?
 
 struct curl_memory_data {
   u8 *memory;
@@ -76,39 +79,70 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb,
 
 static u8 *request(const tal_t *ctx, const char *url, const bool post,
                    const char *data) {
+
   struct curl_memory_data chunk;
+  const struct command *cmd = (struct command*) ctx;
+  u64 time = 0;
+  
   chunk.memory = tal_arr(ctx, u8, 64);
   chunk.size = 0;
-
+  
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
   if (!curl) {
+    plugin_log(cmd->plugin, LOG_UNUSUAL, "Error with lincurl init call");
     return NULL;
   }
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
+
   if (verbose != 0)
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
   if (cainfo_path != NULL)
     curl_easy_setopt(curl, CURLOPT_CAINFO, cainfo_path);
+
   if (capath != NULL)
     curl_easy_setopt(curl, CURLOPT_CAPATH, capath);
+
   if (post) {
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
   }
+  
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
 
+  retrycurl:
   res = curl_easy_perform(curl);
+
   if (res != CURLE_OK) {
+    if (time < retry_time){
+      time++;
+      plugin_log(cmd->plugin, LOG_DBG, "Curl return a result different to CURLE_OK, it is %d", CURLE_OK);
+      sleep(wait_time);
+      plugin_log(cmd->plugin, LOG_DBG, "%ld: Retry curl request to URL: %s", time, url);
+      goto retrycurl;
+    }
     return tal_free(chunk.memory);
   }
+
   long response_code;
+  time = 0;
+  //FIXME(vincenzopalazzo): Is the idea pass the test, Is good refactoring this code to write it only one times
+  //and execut if in different part of code.
+  retryinfo:
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
   if (response_code != 200) {
+    if(time < retry_time){
+      time++;
+      plugin_log(cmd->plugin, LOG_DBG, "bad code in the info answare! wait %d before retry", wait_time);
+      sleep(wait_time);
+      plugin_log(cmd->plugin, LOG_DBG, "%ld: Retry info request to URL=%s", time, url);
+      goto retryinfo;
+    }
     return tal_free(chunk.memory);
   }
   curl_easy_cleanup(curl);
@@ -116,7 +150,7 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
   return chunk.memory;
 }
 
-static char *request_get(const tal_t *ctx, const char *url) {
+ static char *request_get(const tal_t *ctx, const char *url) {
   return (char *)request(ctx, url, false, NULL);
 }
 
@@ -148,7 +182,7 @@ static struct command_result *getchaininfo(struct command *cmd,
                                            const char *buf UNUSED,
                                            const jsmntok_t *toks UNUSED) {
   char *err;
-
+  
   if (!param(cmd, buf, toks, NULL))
     return command_param_failed();
 
