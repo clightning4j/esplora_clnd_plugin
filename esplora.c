@@ -29,9 +29,8 @@ struct esplora {
 	char *cainfo_path;
 	char *capath;
 
-	/* Make curl request more verbose.
-	 * FIXME: this should be a bool! */
-	u64 verbose;
+	/* Make curl request more verbose. */
+	bool verbose;
 
 	/* How many times do we retry curl requests ? */
 	u32 n_retries;
@@ -121,7 +120,7 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-	if (esplora->verbose != 0)
+	if (esplora->verbose)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 	if (esplora->cainfo_path != NULL)
 		curl_easy_setopt(curl, CURLOPT_CAINFO, esplora->cainfo_path);
@@ -584,7 +583,7 @@ static struct esplora *new_esplora(const tal_t *ctx)
 	esplora->endpoint = NULL;
 	esplora->capath = NULL;
 	esplora->cainfo_path = NULL;
-	esplora->verbose = 0;
+	esplora->verbose = false;
 	esplora->n_retries = 4;
 
 	return esplora;
@@ -625,8 +624,8 @@ int main(int argc, char *argv[])
               plugin_option("esplora-capath", "string",
                             "Specify directory holding CA certificates.",
                             charp_option, &esplora->capath),
-              plugin_option("esplora-verbose", "int",
-                            "Set verbose output (default 0).", u64_option,
+              plugin_option("esplora-verbose", "bool",
+                            "Set verbose output (default: false).", bool_option,
                             &esplora->verbose),
 	      plugin_option("esplora-retries", "int",
 		      "How many times should we retry a request to the"
