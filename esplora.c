@@ -76,44 +76,45 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb,
 
 static u8 *request(const tal_t *ctx, const char *url, const bool post,
                    const char *data) {
-  struct curl_memory_data chunk;
-  chunk.memory = tal_arr(ctx, u8, 64);
-  chunk.size = 0;
+	long response_code;
+	struct curl_memory_data chunk;
+	chunk.memory = tal_arr(ctx, u8, 64);
+	chunk.size = 0;
 
-  CURL *curl;
-  CURLcode res;
-  curl = curl_easy_init();
-  if (!curl) {
-    return NULL;
-  }
-  curl_easy_setopt(curl, CURLOPT_URL, url);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-  if (verbose != 0)
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-  if (cainfo_path != NULL)
-    curl_easy_setopt(curl, CURLOPT_CAINFO, cainfo_path);
-  if (capath != NULL)
-    curl_easy_setopt(curl, CURLOPT_CAPATH, capath);
-  if (post) {
-    curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
-  }
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+	CURL *curl;
+	CURLcode res;
+	curl = curl_easy_init();
+	if (!curl) {
+		return NULL;
+	}
 
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) {
-    return tal_free(chunk.memory);
-  }
-  long response_code;
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-  if (response_code != 200) {
-    return tal_free(chunk.memory);
-  }
-  curl_easy_cleanup(curl);
-  tal_resize(&chunk.memory, chunk.size);
-  return chunk.memory;
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
+	if (verbose != 0)
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+	if (cainfo_path != NULL)
+		curl_easy_setopt(curl, CURLOPT_CAINFO, cainfo_path);
+	if (capath != NULL)
+		curl_easy_setopt(curl, CURLOPT_CAPATH, capath);
+	if (post) {
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+	}
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+
+	res = curl_easy_perform(curl);
+	if (res != CURLE_OK)
+		return tal_free(chunk.memory);
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+	if (response_code != 200)
+		return tal_free(chunk.memory);
+
+	curl_easy_cleanup(curl);
+	tal_resize(&chunk.memory, chunk.size);
+
+	return chunk.memory;
 }
 
 static char *request_get(const tal_t *ctx, const char *url) {
