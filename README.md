@@ -27,7 +27,7 @@ sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
 #### Run
 Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and set plugin options, as the following:
 ```
-lightningd --testnet --disable-plugin bcli --log-level=debug \
+./lightningd/lightningd --testnet --disable-plugin bcli --log-level=debug \
  --esplora-api-endpoint=https://blockstream.info/testnet/api
 ```
 
