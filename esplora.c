@@ -612,23 +612,23 @@ int main(int argc, char *argv[])
 	/* Our global state. */
 	esplora = new_esplora(NULL);
 
-  plugin_main(argv, init, PLUGIN_STATIC, false, NULL, commands,
-              ARRAY_SIZE(commands), NULL, 0, NULL, 0,
-              plugin_option(
-                  "esplora-api-endpoint", "string",
-                  "The URL of the esplora instance to hit (including '/api').",
-                  charp_option, &esplora->endpoint),
-              plugin_option("esplora-cainfo", "string",
-                            "Set path to Certificate Authority (CA) bundle.",
-                            charp_option, &esplora->cainfo_path),
-              plugin_option("esplora-capath", "string",
-                            "Specify directory holding CA certificates.",
-                            charp_option, &esplora->capath),
-              plugin_option("esplora-verbose", "bool",
-                            "Set verbose output (default: false).", bool_option,
-                            &esplora->verbose),
-	      plugin_option("esplora-retries", "int",
-		      "How many times should we retry a request to the"
-		      "endpoint before dying ?", u32_option, &esplora->n_retries),
-              NULL);
+	plugin_main(argv, init, PLUGIN_STATIC, false, NULL, commands,
+		    ARRAY_SIZE(commands), NULL, 0, NULL, 0,
+		    plugin_option("esplora-api-endpoint", "string",
+				  "The URL of the esplora instance to hit "
+				  "(including '/api').",
+				  charp_option, &esplora->endpoint),
+		    plugin_option("esplora-cainfo", "string",
+				  "Set path to Certificate Authority (CA) bundle.",
+				  charp_option, &esplora->cainfo_path),
+		    plugin_option("esplora-capath", "string",
+				  "Specify directory holding CA certificates.",
+				  charp_option, &esplora->capath),
+		    plugin_option("esplora-verbose", "bool",
+				  "Set verbose output (default: false).",
+				  bool_option, &esplora->verbose),
+		    plugin_option("esplora-retries", "int",
+				  "How many times should we retry a request to the"
+				  "endpoint before dying ?", u32_option, &esplora->n_retries),
+		    NULL);
 }
