@@ -627,7 +627,7 @@ int main(int argc, char *argv[])
 		    plugin_option("esplora-verbose", "bool",
 				  "Set verbose output (default: false).",
 				  bool_option, &esplora->verbose),
-		    plugin_option("esplora-retries", "int",
+		    plugin_option("esplora-retries", "string",
 				  "How many times should we retry a request to the"
 				  "endpoint before dying ?", u32_option, &esplora->n_retries),
 		    NULL);
