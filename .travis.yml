@@ -1,7 +1,6 @@
 language: c
 compiler: gcc
-os:
-  - linux
+dist: bionic
 
 before_install:
   - sudo apt-get -q update
