@@ -311,6 +311,23 @@ getrawblockbyheight(struct command *cmd, const char *buf, const jsmntok_t *toks)
 	return command_finished(cmd, response);
 }
 
+static struct command_result *
+estimatefees_null_response(struct command *cmd)
+{
+	struct json_stream *response = jsonrpc_stream_success(cmd);
+
+	json_add_null(response, "opening");
+	json_add_null(response, "mutual_close");
+	json_add_null(response, "unilateral_close");
+	json_add_null(response, "delayed_to_us");
+	json_add_null(response, "htlc_resolution");
+	json_add_null(response, "penalty");
+	json_add_null(response, "min_acceptable");
+	json_add_null(response, "max_acceptable");
+
+	return command_finished(cmd, response);
+}
+
 /* Get current feerate.
  * Returns the feerate to lightningd as btc/k*VBYTE*.
  */
