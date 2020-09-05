@@ -344,42 +344,24 @@ static struct command_result *estimatefees(struct command *cmd,
 	if (!param(cmd, buf, toks, NULL))
 		return command_param_failed();
 
-	// fetch feerates
-	const char *feerate_url =
-	    tal_fmt(cmd->plugin, "%s/fee-estimates", esplora->endpoint);
-	const char *feerate_res = request_get(cmd, feerate_url);
-	if (!feerate_res) {
-		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-			      feerate_url);
-		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	// parse feerates output
-	const jsmntok_t *tokens =
-	    json_parse_input(cmd, feerate_res, strlen(feerate_res), &valid);
-	if (!tokens) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(feerate_res), feerate_res);
-		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	// Get the feerate for each target
-	for (size_t i = 0; i < ARRAY_SIZE(feerates); i++) {
-		const jsmntok_t *feeratetok =
-		    json_get_member(feerate_res, tokens,
-				    tal_fmt(cmd->plugin, "%d", targets[i]));
-		// This puts a feerate in sat/vB multiplied by 10**7 in
-		// 'feerate' ...
-		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
-						       &feerates[i])) {
-			err = tal_fmt(cmd,
-				      "%s: had no feerate for block %d (%.*s)?",
-				      cmd->methodname, targets[i],
-				      (int)sizeof(feerate_res), feerate_res);
-			plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-			if (i > 0)
-				feerates[i] = feerates[i - 1];
-		}
+  // fetch feerates
+  const char *feerate_url = tal_fmt(cmd->plugin, "%s/fee-estimates", esplora->endpoint);
+  const char *feerate_res = request_get(cmd, feerate_url);
+  if (!feerate_res) {
+    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, feerate_url);
+    plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
+    return command_done_err(cmd, BCLI_ERROR, err, NULL);
+  }
+  plugin_log(cmd->plugin, LOG_INFORM, "Response feerate estimation %s", feerate_res);
+  // parse feerates output
+  const jsmntok_t *tokens =
+      json_parse_input(cmd, feerate_res, strlen(feerate_res), &valid);
+  if (!tokens) {
+    err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
+                  (int)sizeof(feerate_res), feerate_res);
+    plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
+    return estimatefees_null_response(cmd);
+  }
 
 		// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
 		feerates[i] /= 10000;
