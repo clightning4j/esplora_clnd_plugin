@@ -19,7 +19,6 @@ script:
   - python3 -m virtualenv venv
   - source venv/bin/activate
   - pip install -r requirements.txt
-  - pip install mrkd
   - cp ../esplora.* plugins/
   - patch -p1 < ../Makefile.patch
   - sed -i 's/PLUGINS=/PLUGINS=plugins\/esplora /g' Makefile
