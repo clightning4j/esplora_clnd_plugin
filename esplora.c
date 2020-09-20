@@ -28,26 +28,28 @@ const char *BASE_URL_TORV2 = "http://explorernuoc63nb.onion";
 const char *BASE_URL_TORV3 = "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion";
 
 struct proxy_conf{
+    /* Simple flag to check if the proxy is enabled by configuration*/
+    bool proxy_enabled;
 
-  /* Simple flag to check if the proxy is enabled by configuration*/
-  bool proxy_enabled;
+    /* Proxy address, e.g: 127.0.0.1 */
+    char *address;
 
-  /* Proxy address, e.g: 127.0.0.1 */
-  char *address;
+    /* Proxy port, e.g: 9050 */
+    u64 port;
 
-  /* Proxy port, e.g: 9050 */
-  u64 port;
-
-  /*Flag that mean the the user want that the lightningd used always the proxy
-    Is possible run esplora without proxy, but if lightningd require the proxy always,
-    the plugin shoudl be stop is the alsways_used is equal to true and the proxy_disabled is equal to false.
-   */
-  bool always_used;
+    /* Tor v3 enabled */
+    bool torv3_enabled;
+    
+    /*Flag that mean the the user want that the lightningd used always the proxy
+      Is possible run esplora without proxy, but if lightningd require the proxy always,
+      the plugin shoudl be stop is the alsways_used is equal to true and the proxy_disabled is equal to false.
+    */
+    bool always_used;
 };
 
 struct esplora {
   
-  /* The endpoint to query for Bitcoin data. */
+    /* The endpoint to query for Bitcoin data. */
 	char *endpoint;
 
 	/* CA stuff for TLS. */
@@ -57,8 +59,8 @@ struct esplora {
 	/* Make curl request more verbose. */
 	bool verbose;
 
-  /* Make curl request over proxy socks5 */
-  bool proxy_disabled;
+    /* Make curl request over proxy socks5 */
+    bool proxy_disabled;
   
 	/* How many times do we retry curl requests ? */
 	u32 n_retries;
@@ -150,15 +152,15 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-  if(!esplora->proxy_disabled && proxy_conf->proxy_enabled) {
-    int length = snprintf( NULL, 0, "%ld", proxy_conf->port);
-    //This contains +2 because I added the separator : before to add port number!
-    char* str = malloc(length + 2);
-    snprintf(str, length + 2, ":%ld", proxy_conf->port);
-    char *address = tal_strcat(ctx, proxy_conf->address, str);
-    char *curl_query = tal_strcat(ctx, "socks5h://", address);
-    curl_easy_setopt(curl, CURLOPT_PROXY, curl_query);
-  }
+    if(!esplora->proxy_disabled && proxy_conf->proxy_enabled) {
+        int length = snprintf( NULL, 0, "%ld", proxy_conf->port);
+        //This contains +2 because I added the separator : before to add port number!
+        char* str = malloc(length + 2);
+        snprintf(str, length + 2, ":%ld", proxy_conf->port);
+        char *address = tal_strcat(ctx, proxy_conf->address, str);
+        char *curl_query = tal_strcat(ctx, "socks5h://", address);
+        curl_easy_setopt(curl, CURLOPT_PROXY, curl_query);
+    }
 	if (esplora->verbose)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 	if (esplora->cainfo_path != NULL)
@@ -195,23 +197,22 @@ static char *request_post(const tal_t *ctx, const char *url, const char *data)
 	return (char *)request(ctx, url, true, data);
 }
 
-static char *get_network_from_genesis_block(const char *blockhash) {
-  if (strcmp(
-          blockhash,
-          "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f") ==
-      0)
-    return "main";
-  else if (strcmp(blockhash, "000000000933ea01ad0ee984209779baaec3ced90fa3f4087"
-                             "19526f8d77f4943") == 0)
-    return "test";
-  else if (strcmp(blockhash, "1466275836220db2944ca059a3a10ef6fd2ea684b0688d2c3"
+static char *get_network_from_genesis_block(const char *blockhash)
+{
+    if (strcmp(blockhash,
+               "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f") == 0)
+        return "main";
+    else if (strcmp(blockhash, "000000000933ea01ad0ee984209779baaec3ced90fa3f4087"
+                    "19526f8d77f4943") == 0)
+        return "test";
+    else if (strcmp(blockhash, "1466275836220db2944ca059a3a10ef6fd2ea684b0688d2c3"
                              "79296888a206003") == 0)
-    return "liquidv1";
-  else if (strcmp(blockhash, "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca5"
+        return "liquidv1";
+    else if (strcmp(blockhash, "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca5"
 	                           "90b1a11466e2206") == 0)
 		return "regtest";
-  else
-    return NULL;
+    else
+        return NULL;
 }
 
 /* Get infos about the block chain.
@@ -652,17 +653,20 @@ static void init(struct plugin *p, const char *buffer,
   if (proxy_tok) {
     const jsmntok_t *address_tok = json_get_member(buffer, proxy_tok, "address");
     const jsmntok_t *port_tok = json_get_member(buffer, proxy_tok, "port");
-    if (address_tok && port_tok) { 
+    const jsmntok_t *torv3_tok = json_get_member(buffer, conf_tok, "torv3-enabled");
+    if (address_tok && port_tok && torv3_tok) { 
       proxy_conf->proxy_enabled = true;
       proxy_conf->address = json_strdup(NULL, buffer, address_tok);
       json_to_u64(buffer, port_tok, &proxy_conf->port);
+      json_to_bool(buffer, torv3_tok, &proxy_conf->torv3_enabled);
     }
   }
 
   const jsmntok_t *network_tok = json_get_member(buffer, conf_tok, "network");
-  char *network = json_strdup(NULL, buffer, network_tok);
   
-  if (!configure_esplora_with_network(network, proxy_conf->proxy_enabled, true))
+  char *network = json_strdup(NULL, buffer, network_tok);
+  if (!configure_esplora_with_network(network, proxy_conf->proxy_enabled,
+                                      proxy_conf->torv3_enabled))
     plugin_log(p, LOG_UNUSUAL, "Network %s unsupported", network);
   
   plugin_log(p, LOG_INFORM, "------------ esplora initialized ------------");
@@ -679,7 +683,7 @@ static struct esplora *new_esplora(const tal_t *ctx)
 	esplora->capath = NULL;
 	esplora->cainfo_path = NULL;
 	esplora->verbose = false;
-  esplora->proxy_disabled = false;
+    esplora->proxy_disabled = false;
 	esplora->n_retries = 4;
 
 	return esplora;
@@ -687,14 +691,15 @@ static struct esplora *new_esplora(const tal_t *ctx)
 
 static struct proxy_conf *new_proxy_conf(const tal_t *ctx)
 {
-  struct proxy_conf *proxy_conf = tal(ctx, struct proxy_conf);
+    struct proxy_conf *proxy_conf = tal(ctx, struct proxy_conf);
 
-  proxy_conf->proxy_enabled = false;
-  proxy_conf->address = NULL;
-  proxy_conf->port = 9050;
-  proxy_conf->always_used = false;
+    proxy_conf->proxy_enabled = false;
+    proxy_conf->address = NULL;
+    proxy_conf->port = 9050;
+    proxy_conf->torv3_enabled = false;
+    proxy_conf->always_used = false;
 
-  return proxy_conf;
+    return proxy_conf;
 }
 
 static const struct plugin_command commands[] = {
@@ -735,8 +740,8 @@ int main(int argc, char *argv[])
 		    plugin_option("esplora-retries", "string",
 				  "How many times should we retry a request to the"
 				  "endpoint before dying ?", u32_option, &esplora->n_retries),
-        plugin_option("esplora-disable-proxy", "flag",
-                      "Flag that help o ignore the proxy setted inside lightningd conf.",
+            plugin_option("esplora-disable-proxy", "flag",
+                      "Ignore the proxy setting inside lightningd conf.",
                       flag_option, &esplora->proxy_disabled),
         NULL);
 }

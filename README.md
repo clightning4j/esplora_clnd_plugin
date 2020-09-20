@@ -33,6 +33,6 @@ Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and 
 
 Full available options:
 - `--esplora-verbose=1`: enable curl verbosity
-- `--esplora-api-endpoint=<url>`: set esplora endpoint (as https://blockstream.info/testnet/api for testnet)
 - `--esplora-cainfo=<path>`: set path to Certificate Authority (CA) bundle (CA certificates extracted from Mozilla at https://curl.haxx.se/docs/caextract.html)
 - `--esplora-capath=<path>`: specify directory holding CA certificates.
+- `--esplora-disable-proxy`: ignore the proxy conf from the lightnind node and use esplora without proxy, if this option is missed esplora use the same proxy of lightnind (if there is one).
