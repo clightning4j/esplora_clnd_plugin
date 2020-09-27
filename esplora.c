@@ -368,7 +368,10 @@ static struct command_result *estimatefees(struct command *cmd,
 		    json_get_member(feerate_res, tokens,
 				    tal_fmt(cmd->plugin, "%d", targets[i]));
 		// This puts a feerate in sat/vB multiplied by 10**7 in
-		// 'feerate' ...
+		// 'feerate'.
+		// Esplora can answer with a empty object like this {}, in this
+		// case we need to return a null response to say that is not
+		// possible to estimate the feerate.
 		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
 						       &feerates[i])) {
 			err = tal_fmt(cmd,
@@ -376,8 +379,7 @@ static struct command_result *estimatefees(struct command *cmd,
 				      cmd->methodname, targets[i],
 				      (int)sizeof(feerate_res), feerate_res);
 			plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-			if (i > 0)
-				feerates[i] = feerates[i - 1];
+			return estimatefees_null_response(cmd);
 		}
 
 		// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
