@@ -32,6 +32,7 @@ Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and 
 ```
 
 Full available options:
+- `--esplora-api-endpoint=<url>`: set esplora endpoint (as https://blockstream.info/testnet/api for testnet). If it is not specified, the plugin set the @Blockstream API by default in accord with the lightningd network conf.
 - `--esplora-verbose=1`: enable curl verbosity
 - `--esplora-cainfo=<path>`: set path to Certificate Authority (CA) bundle (CA certificates extracted from Mozilla at https://curl.haxx.se/docs/caextract.html)
 - `--esplora-capath=<path>`: specify directory holding CA certificates.
