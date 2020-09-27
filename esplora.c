@@ -338,7 +338,7 @@ static struct command_result *estimatefees(struct command *cmd,
 	bool valid;
 	// slow, normal, urgent, very_urgent
 	int targets[4] = {144, 5, 3, 2};
-	u64 feerates[4] = {1, 0, 0, 0};
+	u64 *feerates = tal_arr(NULL, u64, 4);
 
 	if (!param(cmd, buf, toks, NULL))
 		return command_param_failed();
@@ -350,11 +350,9 @@ static struct command_result *estimatefees(struct command *cmd,
 	if (!feerate_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
 			      feerate_url);
-		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+		plugin_log(cmd->plugin, LOG_UNUSUAL, "err: %s", err);
+		return estimatefees_null_response(cmd);
 	}
-	plugin_log(cmd->plugin, LOG_INFORM, "Response feerate estimation %s",
-		   feerate_res);
 	// parse feerates output
 	const jsmntok_t *tokens =
 	    json_parse_input(cmd, feerate_res, strlen(feerate_res), &valid);
@@ -364,32 +362,53 @@ static struct command_result *estimatefees(struct command *cmd,
 		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
 		return estimatefees_null_response(cmd);
 	}
+	// Get the feerate for each target
+	for (size_t i = 0; i < tal_count(feerates); i++) {
+		const jsmntok_t *feeratetok =
+		    json_get_member(feerate_res, tokens,
+				    tal_fmt(cmd->plugin, "%d", targets[i]));
+		// This puts a feerate in sat/vB multiplied by 10**7 in
+		// 'feerate' ...
+		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
+						       &feerates[i])) {
+			err = tal_fmt(cmd,
+				      "%s: had no feerate for block %d (%.*s)?",
+				      cmd->methodname, targets[i],
+				      (int)sizeof(feerate_res), feerate_res);
+			plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
+			if (i > 0)
+				feerates[i] = feerates[i - 1];
+		}
 
-	// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
-	feerates[i] /= 10000;
-}
+		// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
+		feerates[i] /= 10000;
+	}
 
-struct json_stream *response = jsonrpc_stream_success(cmd);
-json_add_u64(response, "opening", feerates[1]);
-json_add_u64(response, "mutual_close", feerates[1]);
-json_add_u64(response, "unilateral_close", feerates[3]);
-json_add_u64(response, "delayed_to_us", feerates[1]);
-json_add_u64(response, "htlc_resolution", feerates[2]);
-json_add_u64(response, "penalty", feerates[2]);
-/* We divide the slow feerate for the minimum acceptable, lightningd
- * will use floor if it's hit, though. */
-json_add_u64(response, "min_acceptable", feerates[0] / 2);
-/* BOLT #2:
- *
- * Given the variance in fees, and the fact that the transaction may be
- * spent in the future, it's a good idea for the fee payer to keep a
- * good margin (say 5x the expected fee requirement)
- *
- * 10 is lightningd's default for bitcoind-max-multiplier
- */
-json_add_u64(response, "max_acceptable", feerates[3] * 10);
+	// sanity check
+	if (!feerates)
+		return estimatefees_null_response(cmd);
 
-return command_finished(cmd, response);
+	struct json_stream *response = jsonrpc_stream_success(cmd);
+	json_add_u64(response, "opening", feerates[1]);
+	json_add_u64(response, "mutual_close", feerates[1]);
+	json_add_u64(response, "unilateral_close", feerates[3]);
+	json_add_u64(response, "delayed_to_us", feerates[1]);
+	json_add_u64(response, "htlc_resolution", feerates[2]);
+	json_add_u64(response, "penalty", feerates[2]);
+	/* We divide the slow feerate for the minimum acceptable, lightningd
+	 * will use floor if it's hit, though. */
+	json_add_u64(response, "min_acceptable", feerates[0] / 2);
+	/* BOLT #2:
+	 *
+	 * Given the variance in fees, and the fact that the transaction may be
+	 * spent in the future, it's a good idea for the fee payer to keep a
+	 * good margin (say 5x the expected fee requirement)
+	 *
+	 * 10 is lightningd's default for bitcoind-max-multiplier
+	 */
+	json_add_u64(response, "max_acceptable", feerates[3] * 10);
+
+	return command_finished(cmd, response);
 }
 
 static struct command_result *getutxout(struct command *cmd, const char *buf,
