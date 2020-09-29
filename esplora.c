@@ -665,9 +665,9 @@ static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 	const jsmntok_t *proxy_tok = json_get_member(buffer, config, "proxy");
 	if (proxy_tok) {
 		const jsmntok_t *address_tok =
-		    json_get_member(buffer, config, "address");
+		    json_get_member(buffer, proxy_tok, "address");
 		const jsmntok_t *port_tok =
-		    json_get_member(buffer, config, "port");
+		    json_get_member(buffer, proxy_tok, "port");
 		const jsmntok_t *torv3_tok =
 		    json_get_member(buffer, config, "torv3-enabled");
 		const jsmntok_t *always_proxy =
