@@ -233,27 +233,27 @@ static struct command_result *getchaininfo(struct command *cmd,
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getchaininfo");
 
-  // fetch block genesis hash
-  const char *block_genesis_url =
-      tal_fmt(cmd->plugin, "%s/block-height/0", esplora->endpoint);
-  const char *block_genesis = request_get(cmd, block_genesis_url);
-  if (!block_genesis) {
-    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-                  block_genesis_url);
-    return command_done_err(cmd, BCLI_ERROR, err, NULL);
-  }
-  plugin_log(cmd->plugin, LOG_INFORM, "block_genesis: %s", block_genesis);
+	// fetch block genesis hash
+	const char *block_genesis_url =
+	    tal_fmt(cmd->plugin, "%s/block-height/0", esplora->endpoint);
+	const char *block_genesis = request_get(cmd, block_genesis_url);
+	if (!block_genesis) {
+		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
+			      block_genesis_url);
+		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+	}
+	plugin_log(cmd->plugin, LOG_INFORM, "block_genesis: %s", block_genesis);
 
-  // fetch block count
-  const char *blockcount_url =
-      tal_fmt(cmd->plugin, "%s/blocks/tip/height", esplora->endpoint);
-  const char *blockcount = request_get(cmd, blockcount_url);
-  if (!blockcount) {
-    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
-                  blockcount_url);
-    return command_done_err(cmd, BCLI_ERROR, err, NULL);
-  }
-  plugin_log(cmd->plugin, LOG_INFORM, "blockcount: %s", blockcount);
+	// fetch block count
+	const char *blockcount_url =
+	    tal_fmt(cmd->plugin, "%s/blocks/tip/height", esplora->endpoint);
+	const char *blockcount = request_get(cmd, blockcount_url);
+	if (!blockcount) {
+		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
+			      blockcount_url);
+		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+	}
+	plugin_log(cmd->plugin, LOG_INFORM, "blockcount: %s", blockcount);
 
 	const char *error;
 	u32 height;
@@ -310,31 +310,32 @@ getrawblockbyheight(struct command *cmd, const char *buf, const jsmntok_t *toks)
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getrawblockbyheight %d", *height);
 
-  // fetch blockhash from block height
-  const char *blockhash_url =
-      tal_fmt(cmd->plugin, "%s/block-height/%d", esplora->endpoint, *height);
-  const char *blockhash_ = request_get(cmd, blockhash_url);
-  if (!blockhash_) {
-    // block not found as getrawblockbyheight_notfound
-    return getrawblockbyheight_notfound(cmd);
-  }
-  char *blockhash =
-      tal_dup_arr(cmd, char, (char *)blockhash_, tal_count(blockhash_), 1);
-  blockhash[tal_count(blockhash_)] = '\0';
-  tal_free(blockhash_);
-  plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash,
-             blockhash_url);
+	// fetch blockhash from block height
+	const char *blockhash_url = tal_fmt(cmd->plugin, "%s/block-height/%d",
+					    esplora->endpoint, *height);
+	const char *blockhash_ = request_get(cmd, blockhash_url);
+	if (!blockhash_) {
+		// block not found as getrawblockbyheight_notfound
+		return getrawblockbyheight_notfound(cmd);
+	}
+	char *blockhash = tal_dup_arr(cmd, char, (char *)blockhash_,
+				      tal_count(blockhash_), 1);
+	blockhash[tal_count(blockhash_)] = '\0';
+	tal_free(blockhash_);
+	plugin_log(cmd->plugin, LOG_INFORM, "blockhash: %s from %s", blockhash,
+		   blockhash_url);
 
-  // Esplora serves raw block
-  const char *block_url =
-      tal_fmt(cmd->plugin, "%s/block/%s/raw", esplora->endpoint, blockhash);
-  const u8 *block_res = request(cmd, block_url, false, NULL);
-  if (!block_res) {
-    err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname, block_url);
-    plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
-    // block not found as getrawblockbyheight_notfound
-    return getrawblockbyheight_notfound(cmd);
-  }
+	// Esplora serves raw block
+	const char *block_url = tal_fmt(cmd->plugin, "%s/block/%s/raw",
+					esplora->endpoint, blockhash);
+	const u8 *block_res = request(cmd, block_url, false, NULL);
+	if (!block_res) {
+		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
+			      block_url);
+		plugin_log(cmd->plugin, LOG_INFORM, "%s", err);
+		// block not found as getrawblockbyheight_notfound
+		return getrawblockbyheight_notfound(cmd);
+	}
 
 	// parse rawblock output
 	const char *rawblock =
@@ -386,10 +387,10 @@ static struct command_result *estimatefees(struct command *cmd,
 		return command_param_failed();
 
 	const char *feerate_url =
-	// fetch feerates
+	    // fetch feerates
 	    tal_fmt(cmd->plugin, "%s/fee-estimates", esplora->endpoint);
-	if (!feerate_res) {
 	const char *feerate_res = request_get(cmd, feerate_url);
+	if (!feerate_res) {
 		err = tal_fmt(cmd, "%s: request error on %s", cmd->methodname,
 			      feerate_url);
 		plugin_log(cmd->plugin, LOG_UNUSUAL, "err: %s", err);
@@ -405,18 +406,17 @@ static struct command_result *estimatefees(struct command *cmd,
 		return estimatefees_null_response(cmd);
 	}
 	for (size_t i = 0; i < tal_count(feerates); i++) {
-	// Get the feerate for each target
 		const jsmntok_t *feeratetok =
-				    tal_fmt(cmd->plugin, "%d", targets[i]));
 		    json_get_member(feerate_res, tokens,
+				    tal_fmt(cmd->plugin, "%d", targets[i]));
 		// This puts a feerate in sat/vB multiplied by 10**7 in
 		// 'feerate'.
 		// Esplora can answer with a empty object like this {}, in this
 		// case we need to return a null response to say that is not
 		// possible to estimate the feerate.
 		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
-			err = tal_fmt(cmd,
 						       &feerates[i])) {
+			err = tal_fmt(cmd,
 				      "%s: had no feerate for block %d (%.*s)?",
 				      cmd->methodname, targets[i],
 				      (int)sizeof(feerate_res), feerate_res);
@@ -427,7 +427,6 @@ static struct command_result *estimatefees(struct command *cmd,
 		// ... But lightningd wants a sat/kVB feerate, divide by 10**4 !
 		feerates[i] /= 10000;
 	}
-
 	// sanity check
 	if (!feerates)
 		return estimatefees_null_response(cmd);
@@ -456,13 +455,14 @@ static struct command_result *estimatefees(struct command *cmd,
 }
 
 static struct command_result *getutxout(struct command *cmd, const char *buf,
-                                        const jsmntok_t *toks) {
-  struct json_stream *response;
-  const char *txid, *vout;
-  char *err;
-  bool spent = false;
-  jsmntok_t *tokens;
-  struct bitcoin_tx_output output;
+					const jsmntok_t *toks)
+{
+	struct json_stream *response;
+	const char *txid, *vout;
+	char *err;
+	bool spent = false;
+	jsmntok_t *tokens;
+	struct bitcoin_tx_output output;
 
 	plugin_log(cmd->plugin, LOG_INFORM, "getutxout");
 
@@ -491,7 +491,7 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 	tokens = json_parse_simple(cmd, status_res, strlen(status_res));
-	if (!tokens || !valid) {
+	if (!tokens) {
 		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
 			      (int)sizeof(status_res), status_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -524,7 +524,7 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 	tokens = json_parse_simple(cmd, gettx_res, strlen(gettx_res));
-	if (!tokens || !valid) {
+	if (!tokens) {
 		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
 			      (int)sizeof(gettx_res), gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
@@ -598,18 +598,20 @@ sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 
 	plugin_log(cmd->plugin, LOG_INFORM, "sendrawtransaction");
 
-  // request post passing rawtransaction
-  const char *sendrawtx_url = tal_fmt(cmd->plugin, "%s/tx", esplora->endpoint);
-  const char *res = request_post(cmd, sendrawtx_url, tx);
-  struct json_stream *response = jsonrpc_stream_success(cmd);
-  if (!res) {
-    // send response with failure
-    const char *err =
-        tal_fmt(cmd, "%s: invalid tx (%.*s)? on (%.*s)?", cmd->methodname,
-                (int)sizeof(tx), tx, (int)sizeof(sendrawtx_url), sendrawtx_url);
-    json_add_bool(response, "success", false);
-    json_add_string(response, "errmsg", err);
-  }
+	// request post passing rawtransaction
+	const char *sendrawtx_url =
+	    tal_fmt(cmd->plugin, "%s/tx", esplora->endpoint);
+	const char *res = request_post(cmd, sendrawtx_url, tx);
+	struct json_stream *response = jsonrpc_stream_success(cmd);
+	if (!res) {
+		// send response with failure
+		const char *err =
+		    tal_fmt(cmd, "%s: invalid tx (%.*s)? on (%.*s)?",
+			    cmd->methodname, (int)sizeof(tx), tx,
+			    (int)sizeof(sendrawtx_url), sendrawtx_url);
+		json_add_bool(response, "success", false);
+		json_add_string(response, "errmsg", err);
+	}
 
 	// send response with success
 	json_add_bool(response, "success", true);
@@ -660,7 +662,7 @@ static bool configure_esplora_with_network(const char *network,
 
 static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 {
-  const jsmntok_t *proxy_tok = json_get_member(buffer, config, "proxy");
+	const jsmntok_t *proxy_tok = json_get_member(buffer, config, "proxy");
 	if (proxy_tok) {
 		const jsmntok_t *address_tok =
 		    json_get_member(buffer, config, "address");
