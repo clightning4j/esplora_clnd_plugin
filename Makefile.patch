@@ -1,39 +1,33 @@
 diff --git a/plugins/Makefile b/plugins/Makefile
-index 36112b850..15da24579 100644
+index 36112b850..b59f28389 100644
 --- a/plugins/Makefile
 +++ b/plugins/Makefile
-@@ -10,6 +10,9 @@ PLUGIN_TXPREPARE_OBJS := $(PLUGIN_TXPREPARE_SRC:.c=.o)
- PLUGIN_BCLI_SRC := plugins/bcli.c
- PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
+@@ -13,6 +13,9 @@ PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
+ PLUGIN_KEYSEND_SRC := plugins/keysend.c
+ PLUGIN_KEYSEND_OBJS := $(PLUGIN_KEYSEND_SRC:.c=.o)
  
 +PLUGIN_ESPLORA_SRC := plugins/esplora.c
 +PLUGIN_ESPLORA_OBJS := $(PLUGIN_ESPLORA_SRC:.c=.o)
 +
- PLUGIN_KEYSEND_SRC := plugins/keysend.c
- PLUGIN_KEYSEND_OBJS := $(PLUGIN_KEYSEND_SRC:.c=.o)
- 
-@@ -41,7 +44,8 @@ PLUGIN_ALL_SRC :=				\
- 	$(PLUGIN_LIB_SRC)			\
- 	$(PLUGIN_PAY_LIB_SRC)			\
- 	$(PLUGIN_PAY_SRC)			\
--	$(PLUGIN_SPENDER_SRC)
-+	$(PLUGIN_SPENDER_SRC)		\
-+	$(PLUGIN_ESPLORA_SRC)
- PLUGIN_ALL_HEADER :=				\
- 	$(PLUGIN_LIB_HEADER)			\
- 	$(PLUGIN_PAY_LIB_HEADER)		\
-@@ -54,8 +58,8 @@ PLUGINS :=					\
+ PLUGIN_LIB_SRC := plugins/libplugin.c
+ PLUGIN_LIB_HEADER := plugins/libplugin.h
+ PLUGIN_LIB_OBJS := $(PLUGIN_LIB_SRC:.c=.o)
+@@ -54,11 +57,11 @@ PLUGINS :=					\
  	plugins/keysend				\
  	plugins/pay				\
  	plugins/txprepare			\
 -	plugins/spenderp
 -
 +	plugins/spenderp			\
-+	plugins/esplora				
++	plugins/esplora
  # Make sure these depend on everything.
  ALL_C_SOURCES += $(PLUGIN_ALL_SRC)
- ALL_C_HEADERS += 
-@@ -115,4 +119,6 @@ $(PLUGIN_KEYSEND_OBJS): $(PLUGIN_PAY_LIB_HEADER)
+-ALL_C_HEADERS += 
++ALL_C_HEADERS +=
+ ALL_PROGRAMS += $(PLUGINS)
+ 
+ PLUGIN_COMMON_OBJS :=				\
+@@ -115,4 +118,6 @@ $(PLUGIN_KEYSEND_OBJS): $(PLUGIN_PAY_LIB_HEADER)
  
  plugins/spenderp: bitcoin/chainparams.o $(PLUGIN_SPENDER_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
  
