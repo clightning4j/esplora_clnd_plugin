@@ -591,9 +591,15 @@ static struct command_result *
 sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 {
 	const char *tx;
-
+	// FIXME(vincenzopalazzo) This propriety is added in the version 0.9.1
+	// We can try to give a meaning at this propriety, for the moment
+	// it is only a fix to walk around the param method error
+	bool *allowhighfees;
 	/* bitcoin-cli wants strings. */
-	if (!param(cmd, buf, toks, p_req("tx", param_string, &tx), NULL))
+	if (!param(
+		cmd, buf, toks, p_req("tx", param_string, &tx),
+		p_opt_def("allowhighfees", param_bool, &allowhighfees, false),
+		NULL))
 		return command_param_failed();
 
 	plugin_log(cmd->plugin, LOG_INFORM, "sendrawtransaction");
