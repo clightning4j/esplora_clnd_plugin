@@ -660,21 +660,16 @@ static bool configure_esplora_with_network(const char *network,
 
 static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 {
-
-	config = json_parse_simple(NULL, buffer, strlen(buffer));
-	const jsmntok_t *params_tok = json_get_member(buffer, config, "params");
-	const jsmntok_t *conf_tok =
-	    json_get_member(buffer, params_tok, "configuration");
-	const jsmntok_t *proxy_tok = json_get_member(buffer, conf_tok, "proxy");
+  const jsmntok_t *proxy_tok = json_get_member(buffer, config, "proxy");
 	if (proxy_tok) {
 		const jsmntok_t *address_tok =
-		    json_get_member(buffer, proxy_tok, "address");
+		    json_get_member(buffer, config, "address");
 		const jsmntok_t *port_tok =
-		    json_get_member(buffer, proxy_tok, "port");
+		    json_get_member(buffer, config, "port");
 		const jsmntok_t *torv3_tok =
-		    json_get_member(buffer, conf_tok, "torv3-enabled");
+		    json_get_member(buffer, config, "torv3-enabled");
 		const jsmntok_t *always_proxy =
-		    json_get_member(buffer, conf_tok, "use_proxy_always");
+		    json_get_member(buffer, config, "use_proxy_always");
 		if (address_tok && port_tok && torv3_tok && always_proxy) {
 			proxy_conf->proxy_enabled = true;
 			proxy_conf->address =
@@ -688,7 +683,7 @@ static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 	}
 
 	const jsmntok_t *network_tok =
-	    json_get_member(buffer, conf_tok, "network");
+	    json_get_member(buffer, config, "network");
 
 	char *network = json_strdup(NULL, buffer, network_tok);
 	if (!configure_esplora_with_network(network, proxy_conf->proxy_enabled,
