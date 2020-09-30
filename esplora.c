@@ -405,8 +405,8 @@ static struct command_result *estimatefees(struct command *cmd,
 	const jsmntok_t *tokens =
 	    json_parse_simple(cmd, feerate_res, strlen(feerate_res));
 	if (!tokens) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(feerate_res), feerate_res);
+		err = tal_fmt(cmd, "%s: json error (%s)?", cmd->methodname,
+			      feerate_res);
 		plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
 		return estimatefees_null_response(cmd);
 	}
@@ -422,9 +422,8 @@ static struct command_result *estimatefees(struct command *cmd,
 		if (!feeratetok || !json_to_millionths(feerate_res, feeratetok,
 						       &feerates[i])) {
 			err = tal_fmt(cmd,
-				      "%s: had no feerate for block %d (%.*s)?",
-				      cmd->methodname, targets[i],
-				      (int)sizeof(feerate_res), feerate_res);
+				      "%s: had no feerate for block %d (%s)?",
+				      cmd->methodname, targets[i], feerate_res);
 			plugin_log(cmd->plugin, LOG_INFORM, "err: %s", err);
 			return estimatefees_null_response(cmd);
 		}
@@ -497,8 +496,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	}
 	tokens = json_parse_simple(cmd, status_res, strlen(status_res));
 	if (!tokens) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(status_res), status_res);
+		err = tal_fmt(cmd, "%s: json error (%s)?", cmd->methodname,
+			      status_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
@@ -506,8 +505,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	const jsmntok_t *spenttok =
 	    json_get_member(status_res, tokens, "spent");
 	if (!spenttok || !json_to_bool(status_res, spenttok, &spent)) {
-		err = tal_fmt(cmd, "%s: had no spent (%.*s)?", cmd->methodname,
-			      (int)sizeof(status_res), status_res);
+		err = tal_fmt(cmd, "%s: had no spent (%s)?", cmd->methodname,
+			      status_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 	/* As of at least v0.15.1.0, bitcoind returns "success" but an empty
@@ -530,23 +529,22 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	}
 	tokens = json_parse_simple(cmd, gettx_res, strlen(gettx_res));
 	if (!tokens) {
-		err = tal_fmt(cmd, "%s: json error (%.*s)?", cmd->methodname,
-			      (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: json error (%s)?", cmd->methodname,
+			      gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
 	// parsing vout array field
 	const jsmntok_t *vouttok = json_get_member(gettx_res, tokens, "vout");
 	if (!vouttok) {
-		err = tal_fmt(cmd, "%s: had no vout (%.*s)?", cmd->methodname,
-			      (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: had no vout (%s)?", cmd->methodname,
+			      gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 	const jsmntok_t *v = json_get_arr(vouttok, vout_index);
 	if (!v) {
-		err =
-		    tal_fmt(cmd, "%s: had no vout[%d] (%.*s)?", cmd->methodname,
-			    (int)vout_index, (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: had no vout[%d] (%s)?", cmd->methodname,
+			      (int)vout_index, gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
@@ -556,9 +554,8 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	    !json_to_bitcoin_amount(
 		gettx_res, valuetok,
 		&output.amount.satoshis)) { /* Raw: talking to bitcoind */
-		err = tal_fmt(cmd, "%s: had no vout[%d] value (%.*s)?",
-			      cmd->methodname, vout_index,
-			      (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: had no vout[%d] value (%s)?",
+			      cmd->methodname, vout_index, gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
@@ -566,18 +563,16 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	const jsmntok_t *scriptpubkeytok =
 	    json_get_member(gettx_res, v, "scriptpubkey");
 	if (!scriptpubkeytok) {
-		err = tal_fmt(cmd, "%s: had no vout[%d] scriptpubkey (%.*s)?",
-			      cmd->methodname, vout_index,
-			      (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: had no vout[%d] scriptpubkey (%s)?",
+			      cmd->methodname, vout_index, gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 	output.script =
 	    tal_hexdata(cmd, gettx_res + scriptpubkeytok->start,
 			scriptpubkeytok->end - scriptpubkeytok->start);
 	if (!output.script) {
-		err =
-		    tal_fmt(cmd, "%s: scriptpubkey invalid hex (%.*s)?",
-			    cmd->methodname, (int)sizeof(gettx_res), gettx_res);
+		err = tal_fmt(cmd, "%s: scriptpubkey invalid hex (%s)?",
+			      cmd->methodname, gettx_res);
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
@@ -616,10 +611,8 @@ sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 	struct json_stream *response = jsonrpc_stream_success(cmd);
 	if (!res) {
 		// send response with failure
-		const char *err =
-		    tal_fmt(cmd, "%s: invalid tx (%.*s)? on (%.*s)?",
-			    cmd->methodname, (int)sizeof(tx), tx,
-			    (int)sizeof(sendrawtx_url), sendrawtx_url);
+		const char *err = tal_fmt(cmd, "%s: invalid tx (%s)? on (%s)?",
+					  cmd->methodname, tx, sendrawtx_url);
 		json_add_bool(response, "success", false);
 		json_add_string(response, "errmsg", err);
 	}
