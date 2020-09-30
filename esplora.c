@@ -36,7 +36,7 @@ struct proxy_conf {
 	char *address;
 
 	/* Proxy port, e.g: 9050 */
-	u64 port;
+	unsigned int port;
 
 	/* Tor v3 enabled */
 	bool torv3_enabled;
@@ -152,11 +152,11 @@ static u8 *request(const tal_t *ctx, const char *url, const bool post,
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
 	if (!esplora->proxy_disabled && proxy_conf->proxy_enabled) {
-		int length = snprintf(NULL, 0, "%ld", proxy_conf->port);
+		int length = snprintf(NULL, 0, "%d", proxy_conf->port);
 		// This contains +2 because I added the separator : before to
 		// add port number!
 		char *str = malloc(length + 2);
-		snprintf(str, length + 2, ":%ld", proxy_conf->port);
+		snprintf(str, length + 2, ":%d", proxy_conf->port);
 		char *address = tal_strcat(ctx, proxy_conf->address, str);
 		char *curl_query = tal_strcat(ctx, "socks5h://", address);
 		curl_easy_setopt(curl, CURLOPT_PROXY, curl_query);
@@ -687,7 +687,7 @@ static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 			proxy_conf->proxy_enabled = true;
 			proxy_conf->address =
 			    json_strdup(NULL, buffer, address_tok);
-			json_to_u64(buffer, port_tok, &proxy_conf->port);
+			json_to_number(buffer, port_tok, &proxy_conf->port);
 			json_to_bool(buffer, torv3_tok,
 				     &proxy_conf->torv3_enabled);
 			json_to_bool(buffer, always_proxy,
@@ -717,7 +717,7 @@ static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 		   "------------ esplora initialized ------------");
 	plugin_log(p, LOG_INFORM, "esplora endpoint %s", esplora->endpoint);
 	if (proxy_conf->proxy_enabled && !esplora->proxy_disabled)
-		plugin_log(p, LOG_INFORM, "proxy configuration %s:%ld",
+		plugin_log(p, LOG_INFORM, "proxy configuration %s:%d",
 			   proxy_conf->address, proxy_conf->port);
 }
 
