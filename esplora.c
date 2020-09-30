@@ -199,20 +199,25 @@ static char *request_post(const tal_t *ctx, const char *url, const char *data)
 
 static char *get_network_from_genesis_block(const char *blockhash)
 {
-	if (strcmp(blockhash, "000000000019d6689c085ae165831e934ff763ae46a2a6c1"
-			      "72b3f1b60a8ce26f") == 0)
+	if (strncmp(blockhash,
+		    "000000000019d6689c085ae165831e934ff763ae46a2a6c1"
+		    "72b3f1b60a8ce26f",
+		    64) == 0)
 		return "main";
-	else if (strcmp(blockhash,
-			"000000000933ea01ad0ee984209779baaec3ced90fa3f4087"
-			"19526f8d77f4943") == 0)
+	else if (strncmp(blockhash,
+			 "000000000933ea01ad0ee984209779baaec3ced90fa3f4087"
+			 "19526f8d77f4943",
+			 64) == 0)
 		return "test";
-	else if (strcmp(blockhash,
-			"1466275836220db2944ca059a3a10ef6fd2ea684b0688d2c3"
-			"79296888a206003") == 0)
+	else if (strncmp(blockhash,
+			 "1466275836220db2944ca059a3a10ef6fd2ea684b0688d2c3"
+			 "79296888a206003",
+			 64) == 0)
 		return "liquidv1";
-	else if (strcmp(blockhash,
-			"0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca5"
-			"90b1a11466e2206") == 0)
+	else if (strncmp(blockhash,
+			 "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca5"
+			 "90b1a11466e2206",
+			 64) == 0)
 		return "regtest";
 	else
 		return NULL;
