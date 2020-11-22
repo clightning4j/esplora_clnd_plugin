@@ -1,5 +1,5 @@
 diff --git a/plugins/Makefile b/plugins/Makefile
-index 36112b850..b59f28389 100644
+index fd7b05c13..9e3dbf5cf 100644
 --- a/plugins/Makefile
 +++ b/plugins/Makefile
 @@ -13,6 +13,9 @@ PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
@@ -12,25 +12,22 @@ index 36112b850..b59f28389 100644
  PLUGIN_LIB_SRC := plugins/libplugin.c
  PLUGIN_LIB_HEADER := plugins/libplugin.h
  PLUGIN_LIB_OBJS := $(PLUGIN_LIB_SRC:.c=.o)
-@@ -54,11 +57,11 @@ PLUGINS :=					\
+@@ -54,7 +57,8 @@ PLUGINS :=					\
  	plugins/keysend				\
  	plugins/pay				\
  	plugins/txprepare			\
 -	plugins/spenderp
--
 +	plugins/spenderp			\
 +	plugins/esplora
+ 
  # Make sure these depend on everything.
  ALL_C_SOURCES += $(PLUGIN_ALL_SRC)
--ALL_C_HEADERS += 
-+ALL_C_HEADERS +=
- ALL_PROGRAMS += $(PLUGINS)
- 
- PLUGIN_COMMON_OBJS :=				\
-@@ -115,4 +118,6 @@ $(PLUGIN_KEYSEND_OBJS): $(PLUGIN_PAY_LIB_HEADER)
+@@ -116,6 +120,8 @@ $(PLUGIN_KEYSEND_OBJS): $(PLUGIN_PAY_LIB_HEADER)
  
  plugins/spenderp: bitcoin/chainparams.o $(PLUGIN_SPENDER_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
  
 +plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
 +
  $(PLUGIN_ALL_OBJS): $(PLUGIN_LIB_HEADER)
+ 
+ # Generated from PLUGINS definition in plugins/Makefile
