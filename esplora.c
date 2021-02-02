@@ -671,7 +671,7 @@ static bool configure_esplora_with_network(const char *network,
 	return false;
 }
 
-static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
+static const char *init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 {
 	const jsmntok_t *proxy_tok = json_get_member(buffer, config, "proxy");
 	if (proxy_tok) {
@@ -719,6 +719,7 @@ static void init(struct plugin *p, const char *buffer, const jsmntok_t *config)
 	if (proxy_conf->proxy_enabled && !esplora->proxy_disabled)
 		plugin_log(p, LOG_INFORM, "proxy configuration %s:%d",
 			   proxy_conf->address, proxy_conf->port);
+	return NULL;
 }
 
 static struct esplora *new_esplora(const tal_t *ctx)
