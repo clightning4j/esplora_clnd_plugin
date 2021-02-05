@@ -1,6 +1,6 @@
 # esplora_clnd_plugin
 
-Build status: [![Build Status](https://travis-ci.org/lvaccaro/esplora_clnd_plugin.png?branch=master)](https://travis-ci.org/lvaccaro/esplora_clnd_plugin)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/lightningamp/esplora_clnd_plugin/ci?style=for-the-badge)
 
 [c-lightning](https://github.com/ElementsProject/lightning) C plugin allows c-lightning to use [esplora web explorer](https://blockstream.info) for fetching bitcoin data and send transactions.
 
@@ -14,7 +14,7 @@ sudo apt-get install libcurl4-openssl-dev libssl-dev
 
 #### Build
 1. copy `esplora.c` into `lightning/plugins` folder
-2. apply `Makefile.patch` to add esplora in clightning plugins build (tested for clightning v0.9.0)
+2. apply `Makefile.patch` to add esplora in clightning plugins build (tested for clightning v0.9.3)
 ```
 patch -p1 < Makefile.patch
 ```
@@ -27,8 +27,7 @@ sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
 #### Run
 Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and set plugin options, as the following:
 ```
-./lightningd/lightningd --testnet --disable-plugin bcli --log-level=debug \
- --esplora-api-endpoint=https://blockstream.info/testnet/api
+./lightningd/lightningd --testnet --disable-plugin bcli --log-level=debug
 ```
 
 Full available options:
