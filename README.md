@@ -13,16 +13,8 @@ sudo apt-get install libcurl4-openssl-dev libssl-dev
 ```
 
 #### Build
-1. copy `esplora.c` into `lightning/plugins` folder
-2. apply `Makefile.patch` to add esplora in clightning plugins build (tested for clightning v0.9.3)
-```
-patch -p1 < Makefile.patch
-```
-3. add libcurl to LDLIBS dep (needed for esplora plugin)
-```
-sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
-```
-4. run make on your lightning folder
+1. call `./apply.sh <lightning_src_dir>`
+2. run make in your lightning directory
 
 #### Run
 Disable `bcli` plugin in order to fetch bitcoin data from `esplora` plugin, and set plugin options, as the following:
