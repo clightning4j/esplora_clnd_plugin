@@ -26,7 +26,7 @@ index cbaf5b35c..2bcce7407 100644
  
  plugins/fetchinvoice: bitcoin/chainparams.o $(PLUGIN_FETCHINVOICE_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) common/bolt12.o common/bolt12_merkle.o common/iso4217.o $(WIRE_OBJS) bitcoin/block.o common/channel_id.o bitcoin/preimage.o $(JSMN_OBJS) $(CCAN_OBJS) common/gossmap.o common/dijkstra.o common/route.o common/blindedpath.o common/hmac.o common/blinding.o
  
-+plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
++plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS) -lcurl -lssl -lcrypto
 +
  $(PLUGIN_ALL_OBJS): $(PLUGIN_LIB_HEADER)
  

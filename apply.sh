@@ -9,4 +9,4 @@ test "$1" = "" || { test -d $1; cd $1; }
 
 cp $EDIR/esplora.c plugins
 patch -p1 < $EDIR/Makefile.patch
-sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
+#sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
