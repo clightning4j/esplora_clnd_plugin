@@ -29,8 +29,6 @@ jobs:
           pip install -r requirements.txt
           cp ../esplora.* plugins/
           patch -p1 < ../Makefile.patch
-          sed -i 's/PLUGINS=/PLUGINS=plugins\/esplora /g' Makefile
-          sed -i 's/LDLIBS = /LDLIBS = -lcurl -lssl -lcrypto /g' Makefile
           ./configure
           make
           deactivate
