@@ -762,7 +762,7 @@ static const struct plugin_command commands[] = {
     {"sendrawtransaction", "bitcoin",
      "Send a raw transaction to the Bitcoin network.", "", sendrawtransaction},
     {"getutxout", "bitcoin",
-     "Get informations about an output, identified by a {txid} an a {vout}", "",
+     "Get information about an output, identified by a {txid} an a {vout}", "",
      getutxout},
 };
 
