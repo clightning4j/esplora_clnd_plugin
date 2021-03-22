@@ -597,8 +597,8 @@ sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 {
 	const char *tx;
 	// FIXME(vincenzopalazzo) This propriety is added in the version 0.9.1
-	// We can try to give a meaning at this propriety, for the moment
-	// it is only a fix to walk around the param method error
+	// We can try to give a meaning to it. For the moment
+	// it is only a fix to work around the param method error
 	bool *allowhighfees;
 	/* bitcoin-cli wants strings. */
 	if (!param(
@@ -622,6 +622,7 @@ sendrawtransaction(struct command *cmd, const char *buf, const jsmntok_t *toks)
 			    (int)sizeof(sendrawtx_url), sendrawtx_url);
 		json_add_bool(response, "success", false);
 		json_add_string(response, "errmsg", err);
+		return command_finished(cmd, response);
 	}
 
 	// send response with success
