@@ -535,51 +535,15 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
 	}
 
-	// parsing vout array field
-	const jsmntok_t *vouttok = json_get_member(gettx_res, tokens, "vout");
-	if (!vouttok) {
-		err = tal_fmt(cmd, "%s: had no vout (%.*s)?", cmd->methodname,
-			      (int)sizeof(gettx_res), gettx_res);
+	const char *guide =
+	    tal_fmt(cmd->plugin, "{vout:[%d:{value:%%,scriptpubkey:%%}]}",
+		    (int)vout_index);
+	error = json_scan(
+	    cmd, gettx_res, tokens, guide,
+	    JSON_SCAN(json_to_sat, &output.amount),
+	    JSON_SCAN_TAL(cmd, json_tok_bin_from_hex, &output.script));
+	if (error)
 		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	const jsmntok_t *v = json_get_arr(vouttok, vout_index);
-	if (!v) {
-		err =
-		    tal_fmt(cmd, "%s: had no vout[%d] (%.*s)?", cmd->methodname,
-			    (int)vout_index, (int)sizeof(gettx_res), gettx_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-
-	// parsing amount value
-	const jsmntok_t *valuetok = json_get_member(gettx_res, v, "value");
-	if (!valuetok ||
-	    !json_to_bitcoin_amount(
-		gettx_res, valuetok,
-		&output.amount.satoshis)) { /* Raw: talking to bitcoind */
-		err = tal_fmt(cmd, "%s: had no vout[%d] value (%.*s)?",
-			      cmd->methodname, vout_index,
-			      (int)sizeof(gettx_res), gettx_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-
-	// parsing scriptpubkey
-	const jsmntok_t *scriptpubkeytok =
-	    json_get_member(gettx_res, v, "scriptpubkey");
-	if (!scriptpubkeytok) {
-		err = tal_fmt(cmd, "%s: had no vout[%d] scriptpubkey (%.*s)?",
-			      cmd->methodname, vout_index,
-			      (int)sizeof(gettx_res), gettx_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
-	output.script =
-	    tal_hexdata(cmd, gettx_res + scriptpubkeytok->start,
-			scriptpubkeytok->end - scriptpubkeytok->start);
-	if (!output.script) {
-		err =
-		    tal_fmt(cmd, "%s: scriptpubkey invalid hex (%.*s)?",
-			    cmd->methodname, (int)sizeof(gettx_res), gettx_res);
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
-	}
 
 	// replay response
 	response = jsonrpc_stream_success(cmd);
