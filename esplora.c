@@ -543,7 +543,7 @@ static struct command_result *getutxout(struct command *cmd, const char *buf,
 	    JSON_SCAN(json_to_sat, &output.amount),
 	    JSON_SCAN_TAL(cmd, json_tok_bin_from_hex, &output.script));
 	if (error)
-		return command_done_err(cmd, BCLI_ERROR, err, NULL);
+		return command_done_err(cmd, BCLI_ERROR, error, NULL);
 
 	// replay response
 	response = jsonrpc_stream_success(cmd);
