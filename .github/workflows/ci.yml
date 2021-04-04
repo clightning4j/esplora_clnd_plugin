@@ -23,7 +23,7 @@ jobs:
         run: |
           git clone https://github.com/ElementsProject/lightning.git
           cd lightning
-          git checkout v0.9.3
+          git checkout v0.10.0
           python3 -m virtualenv venv
           source venv/bin/activate
           pip install -r requirements.txt
