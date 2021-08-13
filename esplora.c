@@ -741,7 +741,7 @@ int main(int argc, char *argv[])
 
 	plugin_main(
 	    argv, init, PLUGIN_STATIC, false, NULL, commands,
-	    ARRAY_SIZE(commands), NULL, 0, NULL, 0,
+	    ARRAY_SIZE(commands), NULL, 0, NULL, 0, NULL, 0,
 	    plugin_option("esplora-api-endpoint", "string",
 			  "The URL of the esplora instance to hit "
 			  "(including '/api').",
