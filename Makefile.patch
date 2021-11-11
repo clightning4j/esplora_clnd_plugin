@@ -1,18 +1,20 @@
 diff --git a/plugins/Makefile b/plugins/Makefile
-index cbaf5b35c..2bcce7407 100644
+index f9ec59a40..d4a56369c 100644
 --- a/plugins/Makefile
 +++ b/plugins/Makefile
-@@ -13,6 +13,9 @@ PLUGIN_BCLI_OBJS := $(PLUGIN_BCLI_SRC:.c=.o)
- PLUGIN_KEYSEND_SRC := plugins/keysend.c
- PLUGIN_KEYSEND_OBJS := $(PLUGIN_KEYSEND_SRC:.c=.o)
+@@ -30,7 +30,10 @@ PLUGIN_OFFERS_HEADER := $(PLUGIN_OFFERS_SRC:.c=.h)
  
+ PLUGIN_FETCHINVOICE_SRC := plugins/fetchinvoice.c
+ PLUGIN_FETCHINVOICE_OBJS := $(PLUGIN_FETCHINVOICE_SRC:.c=.o)
+-PLUGIN_FETCHINVOICE_HEADER := 
++PLUGIN_FETCHINVOICE_HEADER :=
++
 +PLUGIN_ESPLORA_SRC := plugins/esplora.c
 +PLUGIN_ESPLORA_OBJS := $(PLUGIN_ESPLORA_SRC:.c=.o)
-+
- PLUGIN_LIB_SRC := plugins/libplugin.c
- PLUGIN_LIB_HEADER := plugins/libplugin.h
- PLUGIN_LIB_OBJS := $(PLUGIN_LIB_SRC:.c=.o)
-@@ -70,7 +73,8 @@ PLUGINS :=					\
+ 
+ PLUGIN_SPENDER_SRC :=				\
+ 	plugins/spender/fundchannel.c		\
+@@ -85,7 +88,8 @@ PLUGINS :=					\
  	plugins/offers				\
  	plugins/pay				\
  	plugins/txprepare			\
@@ -22,9 +24,9 @@ index cbaf5b35c..2bcce7407 100644
  
  # Make sure these depend on everything.
  ALL_C_SOURCES += $(PLUGIN_ALL_SRC)
-@@ -136,6 +140,8 @@ plugins/offers: bitcoin/chainparams.o $(PLUGIN_OFFERS_OBJS) $(PLUGIN_LIB_OBJS) $
+@@ -163,6 +167,8 @@ plugins/fetchinvoice: bitcoin/chainparams.o $(PLUGIN_FETCHINVOICE_OBJS) $(PLUGIN
  
- plugins/fetchinvoice: bitcoin/chainparams.o $(PLUGIN_FETCHINVOICE_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) common/bolt12.o common/bolt12_merkle.o common/iso4217.o $(WIRE_OBJS) bitcoin/block.o common/channel_id.o bitcoin/preimage.o $(JSMN_OBJS) $(CCAN_OBJS) common/gossmap.o common/dijkstra.o common/route.o common/blindedpath.o common/hmac.o common/blinding.o
+ plugins/funder: bitcoin/chainparams.o bitcoin/psbt.o common/psbt_open.o $(PLUGIN_FUNDER_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS)
  
 +plugins/esplora: bitcoin/chainparams.o $(PLUGIN_ESPLORA_OBJS) $(PLUGIN_LIB_OBJS) $(PLUGIN_COMMON_OBJS) $(JSMN_OBJS) $(CCAN_OBJS) -lcurl -lssl -lcrypto
 +
